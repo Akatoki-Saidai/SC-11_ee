@@ -1,6 +1,6 @@
-int xpin = A7;
-int ypin = A6;
-int zpin = A5;
+int xpin = 0;
+int ypin = 1;
+int zpin = 2;
 int acX, acY, acZ;
 
 void setup() {
