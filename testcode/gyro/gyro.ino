@@ -93,5 +93,5 @@ void loop() {
   Serial.print("\t");
   Serial.println(z);  // Z axis (deg/sec)
 
-  delay(1000);
+  delay(10);
 }
