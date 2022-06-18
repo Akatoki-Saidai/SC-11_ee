@@ -1,6 +1,6 @@
-int xpin = 0;
-int ypin = 1;
-int zpin = 2;
+int xpin = A7;
+int ypin = A6;
+int zpin = A5;
 int acX, acY, acZ;
 
 void setup() {
@@ -12,10 +12,16 @@ void loop() {
   acY = analogRead(ypin);
   acZ = analogRead(zpin);
   Serial.print("X:");
-  Serial.println(acX);
+  Serial.println(29.4*(acX-511.5)/511.5);
   Serial.print("y:");
-  Serial.println(acY);
+  Serial.println(29.4*(acY-511.5)/511.5);
   Serial.print("z:");
-  Serial.println(acZ);  
+  Serial.println(29.4*(acZ-511.5)/511.5);
   delay(1000);
 }
+/*
+acX,acY,acZは0~1023の値をとり、
+加速度センサは±3gまで測定できることから、
+出力値が0のとき‐３g、出力値が1023のとき3g、
+出力値が511.5のとき0、と思われる。
+*/
