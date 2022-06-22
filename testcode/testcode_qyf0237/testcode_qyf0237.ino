@@ -9,18 +9,21 @@ void setup() {
 }
 
 void loop() {
+  //電圧の値を0~1023で取得
   acX = analogRead(xpin);
   acY = analogRead(ypin);
   acZ = analogRead(zpin);
+  //電圧値を加速度(単位は重力加速度)に変換
   mX = 3*(acX-511.5)/511.5;
   mY = 3*(acY-511.5)/511.5;
   mZ = 3*(acZ-511.5)/511.5;
+  //誤差補正
   Serial.print("X:");
-  Serial.println(9.8*(mX+0.92)/(-0.42));
+  Serial.println((mX+0.92)/(-0.42));
   Serial.print("Y:");
-  Serial.println(9.8*(mY+0.93)/(-0.41));
+  Serial.println((mY+0.93)/(-0.41));
   Serial.print("Z:");
-  Serial.println(9.8*(mZ+0.94)/(-0.42));
+  Serial.println((mZ+0.94)/(-0.42));
   delay(1000);
 }
 /*
@@ -48,4 +51,8 @@ er2=-1+(M1-M2)/2
 M=er1+(1+er2)*Tより、
 T=(M-er1)/(1+er2)
 これにより、誤差補正ができる。
+*/
+/*2022年6月20日
+er1_X= -0.92 , er1_Y= -0.93 , er1_Z= -0.94
+er2_X= -1.42 , er2_Y= -1.41 , er2_Z= -1.42
 */
