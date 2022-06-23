@@ -60,6 +60,7 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV8); // 8MHz/8 = 1MHz; (max 10MHz)
 
   Serial.begin(9600);
+  MadgwickFilter.begin(100);//100Hz
 
   while (!Serial) {}
 
@@ -72,6 +73,7 @@ void setup() {
                          //   ||||+--- PD: 0: power down, 1: active
                          //   ||++---- BW1-BW0: cut off 12.5[Hz]
                          //   ++------ DR1-DR0: ODR 95[HZ]
+  delay(10);
 }
 
 
