@@ -60,7 +60,6 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV8); // 8MHz/8 = 1MHz; (max 10MHz)
 
   Serial.begin(9600);
-  MadgwickFilter.begin(10);//10Hz
 
   while (!Serial) {}
 
