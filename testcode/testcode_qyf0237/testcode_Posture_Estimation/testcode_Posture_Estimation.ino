@@ -73,7 +73,6 @@ void setup() {
                          //   ||||+--- PD: 0: power down, 1: active
                          //   ||++---- BW1-BW0: cut off 12.5[Hz]
                          //   ++------ DR1-DR0: ODR 95[HZ]
-  delay(300);
 }
 
 
@@ -116,5 +115,5 @@ void loop() {
   Serial.print("yaw:");
   Serial.println(yaw);
 
-  delay(1000);
+  delay(10);
 }
