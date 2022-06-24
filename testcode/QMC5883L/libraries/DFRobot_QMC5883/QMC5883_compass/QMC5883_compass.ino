@@ -61,7 +61,7 @@ void loop()
   if(mag.XAxis<minX){
     minX=mag.XAxis;
   }
-  if(mag.YAxis<minXY){
+  if(mag.YAxis<minY){
     minY=mag.YAxis;
   }
   
@@ -93,11 +93,11 @@ void loop()
   float headingDegrees = heading * 180/M_PI; 
 
   // Output
-  Serial.print(mag.XAxis);
+  Serial.print(mag.XAxis-500);
   Serial.print(":");
-  Serial.print(mag.YAxis);
+  Serial.print(mag.YAxis-2000);
   Serial.print(":");
-  Serial.println(mag.ZAxis);
+  Serial.print(mag.ZAxis);
   Serial.print(":");
   Serial.print(" Heading = ");
   Serial.print(heading);
