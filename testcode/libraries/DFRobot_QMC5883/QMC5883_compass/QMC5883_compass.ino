@@ -22,7 +22,7 @@ void setup()
   while (!compass.begin())
   {
     Serial.println("Could not find a valid QMC5883 sensor, check wiring!");
-    delay(500);
+    delay(50);
   }
 
     if(compass.isHMC()){
