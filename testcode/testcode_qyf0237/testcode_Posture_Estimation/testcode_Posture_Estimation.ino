@@ -72,7 +72,7 @@ void setup() {
   SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(SPI_CLOCK_DIV8); // 8MHz/8 = 1MHz; (max 10MHz)
 
-  Serial.begin(9600);
+  Serial.begin(115200);
   MadgwickFilter.begin(100);//100Hz
 
   while (!Serial) {}
@@ -186,7 +186,7 @@ void loop() {
   // Convert to degrees
   float headingDegrees = heading * 180/M_PI;
 
-  MadgwickFilter.updateIMU(gx,gy,gz,ax,ay,az);
+  MadgwickFilter.updateIMU(gx,gy,gz,ax,ay,az,mag.XAxis,mag.YAxis,mag.ZAxis);
   float roll = MadgwickFilter.getRoll();
   float pitch = MadgwickFilter.getPitch();
   float yaw = MadgwickFilter.getYaw();
