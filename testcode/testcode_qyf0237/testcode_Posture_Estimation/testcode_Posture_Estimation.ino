@@ -90,7 +90,7 @@ void setup() {
                          //   ||||+--- PD: 0: power down, 1: active
                          //   ||++---- BW1-BW0: cut off 12.5[Hz]
                          //   ++------ DR1-DR0: ODR 95[HZ]
-  delay(10);
+ 
 
   //地磁気から
 
@@ -115,6 +115,7 @@ void setup() {
         compass.setDataRate(QMC5883_DATARATE_50HZ);
         compass.setSamples(QMC5883_SAMPLES_8);
    }
+    delay(10);
 }
 
 
@@ -174,7 +175,7 @@ void loop() {
   Vector norm = compass.readNormalize();
   
   // Calculate heading
-  float heading = atan2(norm.YAxis, norm.XAxis,norm.ZAxis);
+  float heading = atan2(norm.YAxis, norm.XAxis);
 
   // Set declination angle on your location and fix heading
   // You can find your declination on: http://magnetic-declination.com/
@@ -196,7 +197,7 @@ void loop() {
   // Convert to degrees
   float headingDegrees = heading * 180/M_PI;
 
-  MadgwickFilter.updateIMU(gx,gy,gz,ax,ay,az,mag.XAxis,mag.YAxis,mag.ZAxis);
+  MadgwickFilter.update(gx,gy,gz,ax,ay,az,mag.XAxis,mag.YAxis,headingDegrees);
   float roll = MadgwickFilter.getRoll();
   float pitch = MadgwickFilter.getPitch();
   float yaw = MadgwickFilter.getYaw();
