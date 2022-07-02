@@ -1,6 +1,23 @@
 #include<SPI.h>
 #include<MadgwickAHRS.h>
 Madgwick MadgwickFilter;
+//地磁気から
+
+#include <Wire.h>
+#include <DFRobot_QMC5883.h>
+
+DFRobot_QMC5883 compass;
+
+int minX = 0;
+int maxX = 0;
+int minY = 0;
+int maxY = 0;
+int minZ = 0;
+int maxZ = 0;
+int offX = 0;
+int offY = 0;
+int offZ = 0;
+
 
 //gyroよりコピー
 
@@ -59,7 +76,7 @@ void setup() {
   SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(SPI_CLOCK_DIV8); // 8MHz/8 = 1MHz; (max 10MHz)
 
-  Serial.begin(9600);
+  Serial.begin(115200);
   MadgwickFilter.begin(100);//100Hz
 
   while (!Serial) {}
@@ -73,13 +90,38 @@ void setup() {
                          //   ||||+--- PD: 0: power down, 1: active
                          //   ||++---- BW1-BW0: cut off 12.5[Hz]
                          //   ++------ DR1-DR0: ODR 95[HZ]
-  delay(10);
+ 
+
+  //地磁気から
+
+   Serial.begin(115200);
+  while (!compass.begin())
+  {
+    Serial.println("Could not find a valid QMC5883 sensor, check wiring!");
+    delay(500);
+  }
+
+    if(compass.isHMC()){
+        Serial.println("Initialize HMC5883");
+        compass.setRange(HMC5883L_RANGE_1_3GA);
+        compass.setMeasurementMode(HMC5883L_CONTINOUS);
+        compass.setDataRate(HMC5883L_DATARATE_15HZ);
+        compass.setSamples(HMC5883L_SAMPLES_8);
+    }
+   else if(compass.isQMC()){
+        Serial.println("Initialize QMC5883");
+        compass.setRange(QMC5883_RANGE_2GA);
+        compass.setMeasurementMode(QMC5883_CONTINOUS); 
+        compass.setDataRate(QMC5883_DATARATE_50HZ);
+        compass.setSamples(QMC5883_SAMPLES_8);
+   }
+    delay(10);
 }
 
 
 
 void loop() {
-  int axpin = A7, aypin = A6, azpin = A5;
+  int axpin = A2, aypin = A1, azpin = A0;
   int mX = analogRead(axpin);
   int mY = analogRead(aypin);
   int mZ = analogRead(azpin);
@@ -104,7 +146,58 @@ void loop() {
   gz *= 0.00875; // +-250dps
 
 
-  MadgwickFilter.updateIMU(gx,gy,gz,ax,ay,az);
+//地磁気から
+
+  Vector mag = compass.readRaw();
+
+  if(mag.XAxis>maxX){
+    maxX=mag.XAxis;
+  }
+  if(mag.YAxis>maxY){
+    maxY=mag.YAxis;
+  }
+
+  if(mag.XAxis<minX){
+    minX=mag.XAxis;
+  }
+  if(mag.YAxis<minY){
+    minY=mag.YAxis;
+  }
+  if(mag.ZAxis>maxZ){
+    maxZ=mag.ZAxis;
+  }
+  if(mag.ZAxis<minZ){
+    minZ=mag.ZAxis;
+  }
+  
+  
+
+  Vector norm = compass.readNormalize();
+  
+  // Calculate heading
+  float heading = atan2(norm.YAxis, norm.XAxis);
+
+  // Set declination angle on your location and fix heading
+  // You can find your declination on: http://magnetic-declination.com/
+  // (+) Positive or (-) for negative
+  // For Bytom / Poland declination angle is 4'26E (positive)
+  // Formula: (deg + (min / 60.0)) / (180 / M_PI);
+  float declinationAngle = (-7.0 + (47.0 / 60.0)) / (180 / PI);
+  heading += declinationAngle;
+
+  // Correct for heading < 0deg and heading > 360deg
+  if (heading < 0){
+    heading += 2 * PI;
+  }
+
+  if (heading > 2 * PI){
+    heading -= 2 * PI;
+  }
+
+  // Convert to degrees
+  float headingDegrees = heading * 180/M_PI;
+
+  MadgwickFilter.update(gx,gy,gz,ax,ay,az,mag.XAxis,mag.YAxis,headingDegrees);
   float roll = MadgwickFilter.getRoll();
   float pitch = MadgwickFilter.getPitch();
   float yaw = MadgwickFilter.getYaw();
