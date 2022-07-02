@@ -121,7 +121,7 @@ void setup() {
 
 
 void loop() {
-  int axpin = A7, aypin = A6, azpin = A5;
+  int axpin = A2, aypin = A1, azpin = A0;
   int mX = analogRead(axpin);
   int mY = analogRead(aypin);
   int mZ = analogRead(azpin);
