@@ -12,8 +12,12 @@ int minX = 0;
 int maxX = 0;
 int minY = 0;
 int maxY = 0;
+int minZ = 0;
+int maxZ = 0;
 int offX = 0;
 int offY = 0;
+int offZ = 0;
+
 
 //gyroよりコピー
 
@@ -158,13 +162,19 @@ void loop() {
   if(mag.YAxis<minY){
     minY=mag.YAxis;
   }
+  if(mag.ZAxis>maxZ){
+    maxZ=mag.ZAxis;
+  }
+  if(mag.ZAxis<minZ){
+    minZ=mag.ZAxis;
+  }
   
   
 
   Vector norm = compass.readNormalize();
   
   // Calculate heading
-  float heading = atan2(norm.YAxis, norm.XAxis);
+  float heading = atan2(norm.YAxis, norm.XAxis,norm.ZAxis);
 
   // Set declination angle on your location and fix heading
   // You can find your declination on: http://magnetic-declination.com/
