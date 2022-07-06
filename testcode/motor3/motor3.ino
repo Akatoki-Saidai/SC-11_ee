@@ -21,15 +21,22 @@ void setup() {
   Serial.println("Writing maximum output.");
   esc.writeMicroseconds(MAX_SIGNAL);  //ESCへ最大のパルス幅を指示します
   Serial.println("Wait 2 seconds.");
-  delay(4000);
+  delay(3000);
   Serial.println("Writing minimum output");
   esc.writeMicroseconds(MIN_SIGNAL);  //ESCへ最小のパルス幅を指示します
   Serial.println("Wait 2 seconds. Then motor starts");
-  delay(4000);
+  delay(3000);
 }
 
 void loop() {  
-  for(int i = 100; i <= 2500; i = i + 50){ 
+  for(int i = 1010; i <= 1500; i = i + 50){ 
+    volume = i;  //可変抵抗の値を1.0で掛けて変数volumeに入れる．値を調整したい場合は倍率を変更する．
+    sprintf(message, "Pulse Width: %d micro sec", volume);  //シリアルモニタに表示するメッセージを作成
+    Serial.println(message);  //可変抵抗の値をシリアルモニタに表示
+    esc.writeMicroseconds(volume);  // パルス幅 `volume` のPWM信号を送信する
+    delay(500);
+  }
+  for(int i = 1500; 1010 <= i; i = i - 50){ 
     volume = i;  //可変抵抗の値を1.0で掛けて変数volumeに入れる．値を調整したい場合は倍率を変更する．
     sprintf(message, "Pulse Width: %d micro sec", volume);  //シリアルモニタに表示するメッセージを作成
     Serial.println(message);  //可変抵抗の値をシリアルモニタに表示
