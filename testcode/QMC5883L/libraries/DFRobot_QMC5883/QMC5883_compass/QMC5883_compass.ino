@@ -93,9 +93,9 @@ void loop()
   float headingDegrees = heading * 180/M_PI; 
 
   // Output
-  Serial.print(mag.XAxis-500);
+  Serial.print(mag.XAxis+650);
   Serial.print(":");
-  Serial.print(mag.YAxis-2000);
+  Serial.print(mag.YAxis-1250);
   Serial.print(":");
   Serial.print(mag.ZAxis);
   Serial.print(":");
