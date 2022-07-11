@@ -380,7 +380,7 @@
       "idf": "",
       "netlist": "sc11bbm.net",
       "specctra_dsn": "sc11bbm.dsn",
-      "step": "",
+      "step": "sc11bbm.step",
       "vrml": ""
     },
     "page_layout_descr_file": ""
