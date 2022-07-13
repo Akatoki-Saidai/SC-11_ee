@@ -50,9 +50,9 @@ void setup()
 void loop()
 {
   Vector mag = compass.readRaw();
-  Serial.print(mag.XAxis);
-  Serial.print(":");
-  Serial.print(mag.YAxis);
-  Serial.print(":");
-  Serial.println(mag.ZAxis);
+  Serial.print(mag.XAxis-1000);
+  Serial.print(",");
+  Serial.print(mag.YAxis-1000);
+  Serial.print(",");
+  Serial.println(mag.ZAxis-1000);
 }
