@@ -46,6 +46,16 @@ float em_roll=0.0;
 float em_pitch=0.0;
 float em_yaw=0.0;
 bool error_modifying = true;
+
+//姿勢制御追加
+float Kp = 5;       // 比例ゲインKp
+float Ki = 200;       // 比例ゲインKi
+float Kd = 300;       // 比例ゲインKd
+float target = 3.14;  // 目標角度[rad]
+
+
+
+
 void setup() {
   digitalWrite(SS, HIGH);
   pinMode(SS, OUTPUT);
@@ -148,17 +158,54 @@ void loop() {
       em_yaw = yaw;
       error_modifying = false;}
    }
-  Serial.print("e,");//データ識別用
+  /*Serial.print("e,");//データ識別用
   Serial.print(roll-em_roll);
   Serial.print(",");
   Serial.print(pitch-em_pitch);
   Serial.print(",");
-  Serial.println(yaw-em_yaw);
+  Serial.println(yaw-em_yaw);*/
   /*Serial.print(roll);
   Serial.print(",");
   Serial.print(pitch);
   Serial.print(",");
   Serial.println(yaw);*/
   //100Ｈｚに合わせる
+
+
+
+
+
+  //姿勢制御追加
+  if(em_time>20000){
+  static float integral = 0;
+  static float last_err = 0;
+  static unsigned long last_micros = 0;
+  
+  float current_rad = pitch-em_pitch ;                // センサーから現在の角度を取得
+  float err = target - current_rad;                   // 偏差を計算
+  float P = Kp * err;                                 // Pを計算
+  unsigned long current_micros = micros();            // 現在の時間を取得
+  float dt = ((float)(current_micros - last_micros))
+              / 1000000.0;                            // 経過時間を計算
+  integral += err * dt;                               // 偏差の積分を計算
+  float I = Ki * integral;                            // Iを計算
+  float diff = (err - last_err) / dt;                 // 偏差の微分を計算
+  float D = Kd * diff;                                // Dを計算
+ // motor_driver.setMotorSpeed( P+I+D );                // PIDでモータを制御
+  last_err = err;                                     // 現在の偏差を保存
+  last_micros = current_micros;                       // 現在の時間を保存
+
+  //test
+ /* Serial.print(P);
+  Serial.print(",");
+  Serial.print(D);
+  Serial.print(",");
+  Serial.println(I);
+  Serial.print(",");*/
+  Serial.println(P+D+I);
+  Serial.print(",");
+  Serial.println(pitch-em_pitch);
+  }
+  
   delay(10);
 }
