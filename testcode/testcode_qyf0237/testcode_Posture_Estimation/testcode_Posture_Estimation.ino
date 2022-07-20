@@ -48,10 +48,23 @@ float em_yaw=0.0;
 bool error_modifying = true;
 
 //姿勢制御追加
-float Kp = 5;       // 比例ゲインKp
+float Kp = 5;         // 比例ゲインKp
 float Ki = 200;       // 比例ゲインKi
 float Kd = 300;       // 比例ゲインKd
 float target = 3.14;  // 目標角度[rad]
+
+//RL_motorから
+#include <Servo.h>
+
+#define MAX_SIGNAL 2000  //PWM信号における最大のパルス幅[マイクロ秒]
+#define MIN_SIGNAL 1000  //PWM信号における最小のパルス幅[マイクロ秒]
+#define ESC_PIN_R 4  //ESCへの出力ピン
+#define ESC_PIN_L 5
+int volume;  //可変抵抗の値を入れる変数
+char message[50];  //シリアルモニタへ表示する文字列を入れる変数
+
+Servo escR;
+Servo escL;
 
 
 
@@ -74,6 +87,27 @@ void setup() {
                          //   ||||+--- PD: 0: power down, 1: active
                          //   ||++---- BW1-BW0: cut off 12.5[Hz]
                          //   ++------ DR1-DR0: ODR 95[HZ]
+
+
+
+  //RL_motorから
+  escR.attach(ESC_PIN_R);
+  escL.attach(ESC_PIN_L);
+  
+  Serial.println("Writing maximum output.");
+  
+  escR.writeMicroseconds(MAX_SIGNAL);
+  escL.writeMicroseconds(MAX_SIGNAL);
+  
+  Serial.println("Wait 2 seconds.");
+  delay(4000);
+  Serial.println("Writing minimum output");
+  
+  escR.writeMicroseconds(MIN_SIGNAL);
+  escL.writeMicroseconds(MIN_SIGNAL);
+  
+  Serial.println("Wait 2 seconds. Then motor starts");
+  delay(4000);
   delay(10);
 }
 void loop() {
@@ -191,7 +225,23 @@ void loop() {
   float I = Ki * integral;                            // Iを計算
   float diff = (err - last_err) / dt;                 // 偏差の微分を計算
   float D = Kd * diff;                                // Dを計算
- // motor_driver.setMotorSpeed( P+I+D );                // PIDでモータを制御
+
+
+  //RL_motorから
+  for(int i = 100; i <= 2500; i = i + 50){ 
+  volume = i;  //可変抵抗の値を1.0で掛けて変数volumeに入れる．値を調整したい場合は倍率を変更する．
+  sprintf(message, "Pulse Width: %d micro sec", volume);  //シリアルモニタに表示するメッセージを作成
+  Serial.println(message);  //可変抵抗の値をシリアルモニタに表示
+    
+  escR.writeMicroseconds(P+D+I);
+  escL.writeMicroseconds(P+D+I);
+  
+  delay(500);
+  }                                                  // PIDでモータを制御
+
+
+
+  
   last_err = err;                                     // 現在の偏差を保存
   last_micros = current_micros;                       // 現在の時間を保存
 
