@@ -274,7 +274,7 @@ void loop() {
   Serial.println(P+D+I);
   Serial.print(",");
   Serial.println(pitch-em_pitch);
-  Serial.println(roll-em_pitch);
+  Serial.println(roll-em_roll);
   
   last_err = err;                                     // 現在の偏差を保存
   last_micros = current_micros;                       // 現在の時間を保存
