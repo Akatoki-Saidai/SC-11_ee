@@ -51,7 +51,7 @@ bool error_modifying = true;
 float Kp = 5;         // 比例ゲインKp
 float Ki = 200;       // 比例ゲインKi
 float Kd = 300;       // 比例ゲインKd
-float target = 3.14;  // 目標角度[rad]
+float target = 0;     // 目標角度[rad]
 
 //RL_motorから
 #include <Servo.h>
@@ -228,22 +228,41 @@ void loop() {
 
 
   //RL_motorから
-  for(int i = 100; i <= 2500; i = i + 50){ 
-  volume = i;  //可変抵抗の値を1.0で掛けて変数volumeに入れる．値を調整したい場合は倍率を変更する．
-  sprintf(message, "Pulse Width: %d micro sec", volume);  //シリアルモニタに表示するメッセージを作成
-  Serial.println(message);  //可変抵抗の値をシリアルモニタに表示
-    
   escR.writeMicroseconds(P+D+I);
-  escL.writeMicroseconds(P+D+I);
-  
-  delay(500);
-  }                                                  // PIDでモータを制御
+  escL.writeMicroseconds(P+D+I);                      // PIDでモータを制御
 
 
+  //以下数値は仮置き
+  //右に流されたときの修正
+  if(roll-em_roll>3.14/*傾き（ラジアン表記）*/){
+    //現在の時間を取得
+    unsigned long current_micros = micros(); 
+    while(micros()<current_micros + 1000000/*出力時間*/){
+        //機体をyaw方向に+90度回転させる。
+        escR.writeMicroseconds(2.5/*入力電圧値*/);
+    }
+    while(micros()<current_micros + 1000000/*出力時間*/){
+        //プロペラを左右回してroll方向の傾きを修正する。    
+        escR.writeMicroseconds(2.5/*入力電圧値*/);
+        escL.writeMicroseconds(2.5/*入力電圧値*/);
+    }    
+  }
+    //左に流された時の修正
+    if(roll-em_roll>3.14/*傾き（ラジアン表記）*/){
+    //現在の時間を取得
+    unsigned long current_micros = micros(); 
+    while(micros()<current_micros + 1000000/*出力時間*/){
+        //機体をyaw方向に+90度回転させる。
+        escR.writeMicroseconds(2.5/*入力電圧値*/);
+    }
+    while(micros()<current_micros + 1000000/*出力時間*/){
+        //プロペラを左右回してroll方向の傾きを修正する。    
+        escR.writeMicroseconds(2.5/*入力電圧値*/);
+        escL.writeMicroseconds(2.5/*入力電圧値*/);
+    }
+  }
 
-  
-  last_err = err;                                     // 現在の偏差を保存
-  last_micros = current_micros;                       // 現在の時間を保存
+
 
   //test
  /* Serial.print(P);
@@ -255,6 +274,12 @@ void loop() {
   Serial.println(P+D+I);
   Serial.print(",");
   Serial.println(pitch-em_pitch);
+  Serial.println(roll-em_pitch);
+  
+  last_err = err;                                     // 現在の偏差を保存
+  last_micros = current_micros;                       // 現在の時間を保存
+ 
+  
   }
   
   delay(10);
