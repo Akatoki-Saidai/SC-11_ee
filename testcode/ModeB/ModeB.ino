@@ -291,32 +291,52 @@ void loop(){
         float pitch = MadgwickFilter.getPitchRadians();
         float yaw = MadgwickFilter.getYawRadians();
        
-        //誤差修正(20秒)
+        //誤差修正(10秒)
         if(error_modifying){
           em_time += 10;
-          if(em_time > 20000){
+          if(em_time > 10000){
           em_roll = roll;
           em_pitch = pitch;
           em_yaw = yaw;
           error_modifying = false;}
          } 
-
-       //時間短縮用
-        /*Serial.print("e,");//データ識別用
-        Serial.print(roll);
-        Serial.print(",");
-        Serial.print(pitch);
-        Serial.print(",");
-        Serial.println(yaw);*/
-        
         Serial.print("e,");
         Serial.print(roll-em_roll);
         Serial.print(",");
         Serial.print(pitch-em_pitch);
         Serial.print(",");
         Serial.println(yaw-em_yaw);
-
-        if(em_time > 30000){
+        if(em_time > 11000){
+        //右に流されたときの修正
+        //if(roll<-1.0){
+        if(roll-em_roll>1.0/*傾き（ラジアン表記）*/){
+          //現在の時間を取得
+          unsigned long current_micros = micros(); 
+          while(micros()<current_micros + 1000000/*出力時間*/){
+              //機体をyaw方向に+90度回転させる。
+              escR.writeMicroseconds(1500/*入力電圧値*/);
+          }
+          while(micros()<current_micros + 1000000/*出力時間*/){
+              //プロペラを左右回してroll方向の傾きを修正する。    
+              escR.writeMicroseconds(1500/*入力電圧値*/);
+              escL.writeMicroseconds(1500/*入力電圧値*/);
+          }    
+        }
+          //左に流された時の修正
+          //if(roll>-5.0){
+          if(roll-em_roll<-1.0/*傾き（ラジアン表記）*/){
+          //現在の時間を取得
+          unsigned long current_micros = micros(); 
+          while(micros()<current_micros + 1000000/*出力時間*/){
+              //機体をyaw方向に+90度回転させる。
+              escR.writeMicroseconds(1500/*入力電圧値*/);
+          }
+          while(micros()<current_micros + 1000000/*出力時間*/){
+              //プロペラを左右回してroll方向の傾きを修正する。    
+              escR.writeMicroseconds(1500/*入力電圧値*/);
+              escL.writeMicroseconds(1500/*入力電圧値*/);
+        }
+        }
         //姿勢制御追加
         static float integral = 0;
         static float last_err = 0;
@@ -334,8 +354,6 @@ void loop(){
         
         escR.writeMicroseconds(1500);
         escL.writeMicroseconds(1500);                       // PIDでモータを制御
-
-        
         //test
        /* Serial.print(P);
         Serial.print(",");
@@ -349,15 +367,13 @@ void loop(){
         last_micros = current_micros;                       // 現在の時間を保存      
         }
         delay(10);
-
         break;
-         
    }
 
   case 2://Mode-B
   {
     
-  if(em_time > 30000){
+  if(em_time > 11000){
   
       //escR.writeMicroseconds(1500);
       //escL.writeMicroseconds(1500);
