@@ -60,8 +60,9 @@ byte L3GD20_read(byte reg)
   return ret;
 }
 
-DFRobot_QMC5883 compass;
 int phase = 1;
+
+DFRobot_QMC5883 compass;
 double heading;
 double declinationAngle;
 double headingDegrees;
@@ -101,22 +102,6 @@ double gps_latitude, gps_longitude;
 //int calibration = 1;
 //int sum_count = 0;
 //double CurrentDistance;
-
-//モータを動かすプログラム
-int volume;  //可変抵抗の値を入れる変数
-char message[50];  //シリアルモニタへ表示する文字列を入れる変数
-Servo escR;
-Servo escL;
-//右の回転数を上げる
-void RightRotating(){
-  escR.writeMicroseconds(1800);
-  escL.writeMicroseconds(1300);
-}
-//左の回転数を上げる
-void LeftRotating(){
-  escR.writeMicroseconds(1300);
-  escL.writeMicroseconds(1800);
-}
 
 //緯度経度から距離を返す関数
 double CalculateDis(double GOAL_lng, double GOAL_lat, double gps_longitude, double gps_latitude)
@@ -178,6 +163,22 @@ double CalculateHeading(double heading)
     }
     return (Sum_headingDegrees/15);             
 }
+//モータを動かすプログラム
+int volume;  //可変抵抗の値を入れる変数
+char message[50];  //シリアルモニタへ表示する文字列を入れる変数
+Servo escR;
+Servo escL;
+
+//右の回転数を上げる
+void RightRotating(){
+  escR.writeMicroseconds(1800);
+  escL.writeMicroseconds(1300);
+}
+//左の回転数を上げる
+void LeftRotating(){
+  escR.writeMicroseconds(1300);
+  escL.writeMicroseconds(1800);
+}
 
 //Posture Estimationから
 int setupco = 0;
@@ -228,21 +229,14 @@ void setup() {
                          
 }
 
-
-
-
 void loop(){
  //     sprintf(message, "Pulse Width: %d micro sec", 1500);
-  switch(phase){
     
-   case 1://Mode-A
+
    {
       //escR.writeMicroseconds(1500);
       //escL.writeMicroseconds(1500);
-
-
-      
-            
+              
       //姿勢制御追加
       float Kp = 3;         // 比例ゲインKp
       float Ki = 3;         // 比例ゲインKi
@@ -313,24 +307,18 @@ void loop(){
         Serial.print(pitch);
         Serial.print(",");
         Serial.println(yaw);*/
-        Serial.print("e,");//データ識別用
+        
+        Serial.print("e,");
         Serial.print(roll-em_roll);
         Serial.print(",");
         Serial.print(pitch-em_pitch);
         Serial.print(",");
         Serial.println(yaw-em_yaw);
-
-        //100Ｈｚに合わせる
-      
-      
-      
-      
       
         //姿勢制御追加
         static float integral = 0;
         static float last_err = 0;
         static unsigned long last_micros = 0;
-        
         float current_rad = pitch-em_pitch ;                // センサーから現在の角度を取得
         float err = target - current_rad;                   // 偏差を計算
         float P = Kp * err;                                 // Pを計算
@@ -342,42 +330,10 @@ void loop(){
         float diff = (err - last_err) / dt;                 // 偏差の微分を計算
         float D = Kd * diff;                                // Dを計算
         
-         escR.writeMicroseconds(1500);
+        escR.writeMicroseconds(1500);
         escL.writeMicroseconds(1500);       // PIDでモータを制御
-         
-        //右に流されたときの修正
-        //if(roll<-1.0){
-        if(roll-em_roll>1.0/*傾き（ラジアン表記）*/){
-          //現在の時間を取得
-          unsigned long current_micros = micros(); 
-          while(micros()<current_micros + 1000000/*出力時間*/){
-              //機体をyaw方向に+90度回転させる。
-              escR.writeMicroseconds(1500/*入力電圧値*/);
-          }
-          while(micros()<current_micros + 1000000/*出力時間*/){
-              //プロペラを左右回してroll方向の傾きを修正する。    
-              escR.writeMicroseconds(1500/*入力電圧値*/);
-              escL.writeMicroseconds(1500/*入力電圧値*/);
-          }    
-        }
-          //左に流された時の修正
-          //if(roll>-5.0){
-          if(roll-em_roll<-1.0/*傾き（ラジアン表記）*/){
-          //現在の時間を取得
-          unsigned long current_micros = micros(); 
-          while(micros()<current_micros + 1000000/*出力時間*/){
-              //機体をyaw方向に+90度回転させる。
-              escR.writeMicroseconds(1500/*入力電圧値*/);
-          }
-          while(micros()<current_micros + 1000000/*出力時間*/){
-              //プロペラを左右回してroll方向の傾きを修正する。    
-              escR.writeMicroseconds(1500/*入力電圧値*/);
-              escL.writeMicroseconds(1500/*入力電圧値*/);
-          }
-        }
-      
-      
-      
+
+        
         //test
        /* Serial.print(P);
         Serial.print(",");
@@ -392,7 +348,7 @@ void loop(){
         last_micros = current_micros;                       // 現在の時間を保存      
         delay(10);
          
-   }
+   }}
 /*
   case 2://Mode-B
   {
@@ -462,5 +418,3 @@ void loop(){
             }
         break;    
 */
-}
-}
