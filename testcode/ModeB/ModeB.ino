@@ -230,9 +230,10 @@ void setup() {
 }
 
 void loop(){
- //     sprintf(message, "Pulse Width: %d micro sec", 1500);
+ //     sprintf(message, "Pulse Width: %d micro sec", 1500);  
+  switch(phase){
     
-
+    case 1:
    {
       //escR.writeMicroseconds(1500);
       //escL.writeMicroseconds(1500);
@@ -314,7 +315,8 @@ void loop(){
         Serial.print(pitch-em_pitch);
         Serial.print(",");
         Serial.println(yaw-em_yaw);
-      
+
+        if(em_time > 30000){
         //姿勢制御追加
         static float integral = 0;
         static float last_err = 0;
@@ -331,7 +333,7 @@ void loop(){
         float D = Kd * diff;                                // Dを計算
         
         escR.writeMicroseconds(1500);
-        escL.writeMicroseconds(1500);       // PIDでモータを制御
+        escL.writeMicroseconds(1500);                       // PIDでモータを制御
 
         
         //test
@@ -343,39 +345,35 @@ void loop(){
         Serial.print(",");
         Serial.println(P+D+I);
         Serial.print(",");*/
-       
         last_err = err;                                     // 現在の偏差を保存
         last_micros = current_micros;                       // 現在の時間を保存      
+        }
         delay(10);
+
+        break;
          
-   }}
-/*
+   }
+
   case 2://Mode-B
   {
     
-  if(em_time > 20000){
+  if(em_time > 30000){
   
       //escR.writeMicroseconds(1500);
       //escL.writeMicroseconds(1500);
-
-      //delay(500);
       
      CurrentDistance = CalculateDis(GOAL_lng, GOAL_lat, gps_longitude, gps_latitude);
           Serial.print("CurrentDistance=");
           Serial.println(CurrentDistance);
-
      
         // Goalまでの偏角を計算する
        Angle_Goal = CalculateAngle(GOAL_lng, GOAL_lat, gps_longitude, gps_latitude);
-
        for (int i = 0; i < 15; i++){
             delay(10);
             Vector norm = compass.readNormalize();
             heading = atan2(norm.YAxis, norm.XAxis);
          }
         Angle_gy270 = CalculateHeading(heading);
-
-
          // どちらに回ればいいか計算
               rrAngle = -Angle_gy270 + Angle_Goal;
               if (rrAngle < 0){
@@ -391,7 +389,6 @@ void loop(){
               if (llAngle > 360){
                 llAngle -= 360;
               }
-
             if (rrAngle > llAngle){
               //反時計回り
               if (llAngle > 20){
@@ -402,19 +399,19 @@ void loop(){
               if (rrAngle > 20){
                 LeftRotating();//左側のモータの回転数を上げる
               }
-            }
-          /*
-            if(err>3.0)//0.35[rad](約20°以上ロー角傾いたとき)
+            }       
+            if(err>3.0)
             {
               //phase = A;機体が安定していない場合Mode-Aに移行する
-              Serial.println("Mode-Aへ移行");
-              
+              Serial.println("Mode-Aへ移行"); 
             }
-          }
-        
             if(desiredDistance < CurrentDistance){
               //phase = F;距離が理想値よりも小さくなったらMode-Fに移行する
               Serial.println("Mode-Fへ移行");
             }
-        break;    
-*/
+        delay(10);
+        break;   
+}
+}
+}
+}
