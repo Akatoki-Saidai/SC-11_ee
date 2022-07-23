@@ -185,11 +185,12 @@ int setupco = 0;
 float sumgx, sumgy, sumgz;
 int count = 0;
 long endtime;
-short em_time=0;
+float em_time=0;
 float em_roll=0.0;
 float em_pitch=0.0;
 float em_yaw=0.0;
 bool error_modifying = true;
+
 
 void setup() {
   Serial.begin(115200);
@@ -231,19 +232,12 @@ void setup() {
 
 void loop(){
  //     sprintf(message, "Pulse Width: %d micro sec", 1500);  
-  switch(phase){
-    
-    case 1:
-   {
-      //escR.writeMicroseconds(1500);
-      //escL.writeMicroseconds(1500);
-              
+
       //姿勢制御追加
       float Kp = 3;         // 比例ゲインKp
       float Ki = 3;         // 比例ゲインKi
       float Kd = 3;         // 比例ゲインKd
       float target = 0;     // 目標角度[rad]
-      
         int axpin = A2, aypin = A1, azpin = A0;
         short mX = analogRead(axpin);
         short mY = analogRead(aypin);
@@ -294,19 +288,47 @@ void loop(){
         //誤差修正(10秒)
         if(error_modifying){
           em_time += 10;
-          if(em_time > 10000){
+          if(em_time > 20000){
           em_roll = roll;
           em_pitch = pitch;
           em_yaw = yaw;
           error_modifying = false;}
          } 
+        em_time += 10;
         Serial.print("e,");
         Serial.print(roll-em_roll);
         Serial.print(",");
         Serial.print(pitch-em_pitch);
         Serial.print(",");
         Serial.println(yaw-em_yaw);
-        if(em_time > 11000){
+
+        
+        static float integral = 0;
+        static float last_err = 0;
+        static unsigned long last_micros = 0;
+        float current_rad = pitch-em_pitch ;                // センサーから現在の角度を取得
+        float err = target - current_rad;                   // 偏差を計算
+        float P = Kp * err;                                 // Pを計算
+        unsigned long current_micros = micros();            // 現在の時間を取得
+        float dt = ((float)(current_micros - last_micros))
+                    / 1000000.0;                            // 経過時間を計算
+        integral += err * dt;                               // 偏差の積分を計算
+        float I = Ki * integral;                            // Iを計算
+        float diff = (err - last_err) / dt;                 // 偏差の微分を計算
+        float D = Kd * diff;                                // Dを計算
+
+        last_err = err;                                     // 現在の偏差を保存
+        last_micros = current_micros;                       // 現在の時間を保存     
+      Serial.println("test");
+      Serial.println(em_time);             
+  if(em_time > 21000){       
+  switch(phase){
+    case 1:
+   {
+      Serial.println("Mode-A実行中");
+
+        escR.writeMicroseconds(1500);
+        escL.writeMicroseconds(1500);    
         //右に流されたときの修正
         //if(roll<-1.0){
         if(roll-em_roll>1.0/*傾き（ラジアン表記）*/){
@@ -338,22 +360,7 @@ void loop(){
         }
         }
         //姿勢制御追加
-        static float integral = 0;
-        static float last_err = 0;
-        static unsigned long last_micros = 0;
-        float current_rad = pitch-em_pitch ;                // センサーから現在の角度を取得
-        float err = target - current_rad;                   // 偏差を計算
-        float P = Kp * err;                                 // Pを計算
-        unsigned long current_micros = micros();            // 現在の時間を取得
-        float dt = ((float)(current_micros - last_micros))
-                    / 1000000.0;                            // 経過時間を計算
-        integral += err * dt;                               // 偏差の積分を計算
-        float I = Ki * integral;                            // Iを計算
-        float diff = (err - last_err) / dt;                 // 偏差の微分を計算
-        float D = Kd * diff;                                // Dを計算
-        
-        escR.writeMicroseconds(1500);
-        escL.writeMicroseconds(1500);                       // PIDでモータを制御
+                   // PIDでモータを制御
         //test
        /* Serial.print(P);
         Serial.print(",");
@@ -363,20 +370,23 @@ void loop(){
         Serial.print(",");
         Serial.println(P+D+I);
         Serial.print(",");*/
-        last_err = err;                                     // 現在の偏差を保存
-        last_micros = current_micros;                       // 現在の時間を保存      
-        }
+
+        if(err > -0.34 || err < 0.34 )
+            {
+              phase = 2; //機体が安定した場合Mode-Bに移行する
+              Serial.println("Mode-Bへ移行"); 
+            }
         delay(10);
         break;
    }
-
   case 2://Mode-B
   {
     
-  if(em_time > 11000){
+
   
-      //escR.writeMicroseconds(1500);
-      //escL.writeMicroseconds(1500);
+      escR.writeMicroseconds(1500);
+      escL.writeMicroseconds(1500);
+      Serial.println("mode_B実行中");
       
      CurrentDistance = CalculateDis(GOAL_lng, GOAL_lat, gps_longitude, gps_latitude);
           Serial.print("CurrentDistance=");
@@ -416,18 +426,20 @@ void loop(){
                 LeftRotating();//左側のモータの回転数を上げる
               }
             }       
-            if(err>3.0)
+            if(err <= -0.34 || err >= 0.34)
             {
-              //phase = A;機体が安定していない場合Mode-Aに移行する
+              phase = 1;//機体が安定していない場合Mode-Aに移行する
               Serial.println("Mode-Aへ移行"); 
             }
             if(desiredDistance < CurrentDistance){
               //phase = F;距離が理想値よりも小さくなったらMode-Fに移行する
               Serial.println("Mode-Fへ移行");
             }
+
         delay(10);
         break;   
 }
 }
 }
+delay(10);
 }
