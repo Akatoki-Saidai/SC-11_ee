@@ -1,0 +1,16 @@
+(footprint "bighole" (version 20211014) (generator pcbnew)
+  (layer "F.Cu")
+  (tedit 0)
+  (attr through_hole)
+  (fp_text reference "REF**" (at 0 -0.5 unlocked) (layer "F.SilkS") hide
+    (effects (font (size 1 1) (thickness 0.15)))
+    (tstamp 8161cda5-44b6-49d8-a114-9b15f2f181d6)
+  )
+  (fp_text value "bighole" (at 0 1 unlocked) (layer "F.Fab") hide
+    (effects (font (size 1 1) (thickness 0.15)))
+    (tstamp f010a8d1-09b7-4a0d-9ed6-7cd3db326a1a)
+  )
+  (fp_rect (start -5.08 -5.08) (end 5.08 0) (layer "F.SilkS") (width 0.12) (fill none) (tstamp 15fa79f0-ce73-4a91-86c1-216b34456963))
+  (pad "1" thru_hole circle (at -2.54 -2.54) (size 3 3) (drill 1.7) (layers *.Cu *.Mask) (tstamp 4042189f-0bfe-4900-a4d8-b6382b15f69d))
+  (pad "2" thru_hole rect (at 2.54 -2.54) (size 3 3) (drill 1.7) (layers *.Cu *.Mask) (tstamp ac4e7e42-9cbc-4c73-aeaa-52dd2839cd89))
+)
