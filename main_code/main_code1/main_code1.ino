@@ -190,6 +190,8 @@ void LeftRotating(){
 }
 
 
+
+
 void setup() {
   digitalWrite(SS, HIGH);
   pinMode(SS, OUTPUT);
@@ -334,7 +336,7 @@ void loop() {
         last_micros = current_micros;                       // 現在の時間を保存     
       Serial.println("test");
       Serial.println(em_time);             
-  if(em_time > 20000 && em_time < 2000000 ){       
+  if(em_time > 20000 ){       
   switch(phase){
     case 1:
    {
