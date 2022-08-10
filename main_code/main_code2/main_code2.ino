@@ -1,5 +1,9 @@
 #include <SPI.h>
 #include <SD.h>
+#include <Wire.h>
+#include <DFRobot_QMC5883.h>
+
+DFRobot_QMC5883 compass;
 
 const int BMP280_CS = 9;
 const int L3GD20_CS = 10;
@@ -7,6 +11,12 @@ const int SD_CS = 4;
 
 File LogFile;
 File SensorData;
+
+int xpin = A2;
+int ypin = A1;
+int zpin = A0;
+int acX, acY, acZ;
+double mX, mY, mZ;
 
 
 //--------------------
@@ -70,6 +80,10 @@ const byte L3GD20_MS = 0x40;
 short gyroX, gyroY, gyroZ;
 float gyrox, gyroy, gyroz;
 
+float magmagX, magmagY, magmagZ;
+
+float heading, headingDegrees;
+
 //--------------------
 
 
@@ -93,7 +107,8 @@ byte L3GD20_read(byte reg){
 void setup(){
     // Serialデータはデバッグモードが解除されていれば自動的にTweLiteに送信されます．
     Serial.begin(115200); 
-
+    compass.begin();
+    
     // ----------SPI制御の設定----------
     //SPI初期化
     SPI.begin();
@@ -174,34 +189,42 @@ void setup(){
     // ----------L3GD20の設定----------
     L3GD20_write(L3GD20_CTRL1, B00001111);
 
+    // ----------地磁気センサーの設定----------
+    compass.setRange(QMC5883_RANGE_2GA);
+    compass.setMeasurementMode(QMC5883_CONTINOUS); 
+    compass.setDataRate(QMC5883_DATARATE_50HZ);
+    compass.setSamples(QMC5883_SAMPLES_8);
 }
 
 void loop(){
     getDataBMP();
+    getL3GD20();
+    getAcc();
+    getmagmag();
+
+    Serial.println("BMP");
     Serial.print(pres);
     Serial.print("\t");
     Serial.print(temp);
     Serial.print("\t");
     Serial.println(alt);
-    SensorData.print(pres);
-    SensorData.print("\t");
-    SensorData.print(temp);
-    SensorData.print("\t");
-    SensorData.println(alt);
-    getL3GD20();
+    Serial.println("gyro");
     Serial.print(gyrox);
     Serial.print("\t");
     Serial.print(gyroy);
     Serial.print("\t");
     Serial.println(gyroz);
-    SensorData.print(gyrox);
-    SensorData.print("\t");
-    SensorData.print(gyroy);
-    SensorData.print("\t");
-    SensorData.println(gyroz);
-    delay(1000);
-    SensorData.flush();
+    Serial.println("acc");
+    Serial.print(mX);
+    Serial.print("\t");
+    Serial.print(mY);
+    Serial.print("\t");
+    Serial.println(mZ);
+    Serial.println("compass");
+    Serial.println(headingDegrees);
     
+    Serial.println();
+    delay(1000);
 }
 
 
@@ -298,4 +321,49 @@ void getL3GD20(){
     gyroy *= 0.00875; // +-250dps
     gyroz *= 0.00875; // +-250dps
     delay(10);
+}
+
+void getAcc(){
+  acX = analogRead(xpin);
+  acY = analogRead(ypin);
+  acZ = analogRead(zpin);
+  //電圧値を加速度(単位は重力加速度)に変換
+  mX = 3*(acX-511.5)/511.5;
+  mY = 3*(acY-511.5)/511.5;
+  mZ = 3*(acZ-511.5)/511.5;
+  //誤差補正
+  mX = (mX+0.92)/(-0.42);
+  mY = (mY+0.93)/(-0.41);
+  mZ = (mZ+0.94)/(-0.42);
+}
+
+void getmagmag(){
+  Vector mag = compass.readRaw();
+  magmagX = mag.XAxis-1000;
+  magmagY = mag.YAxis-1000;
+  magmagZ = mag.ZAxis-1000;
+  
+  Vector norm = compass.readNormalize();
+  
+  heading = atan2(norm.YAxis, norm.XAxis);
+
+  // Set declination angle on your location and fix heading
+  // You can find your declination on: http://magnetic-declination.com/
+  // (+) Positive or (-) for negative
+  // For Bytom / Poland declination angle is 4'26E (positive)
+  // Formula: (deg + (min / 60.0)) / (180 / M_PI);
+  float declinationAngle = -(9.0 + (2.0 / 60.0)) / (180 / PI);
+  heading += declinationAngle;
+
+  // Correct for heading < 0deg and heading > 360deg
+  if (heading < 0){
+    heading += 2 * PI;
+  }
+
+  if (heading > 2 * PI){
+    heading -= 2 * PI;
+  }
+
+  // Convert to degrees
+  headingDegrees = heading * 180/M_PI; 
 }
