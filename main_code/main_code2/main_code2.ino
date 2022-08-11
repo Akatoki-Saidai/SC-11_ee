@@ -358,7 +358,6 @@ void getDataBMP(){
     humi = (float)humi_cal / 1024.0;//湿度データを実際の値に計算
     alt  = ((pow(p0/pres,1/5.257) - 1)*(temp + 273.15))/0.0065;
 }
-
 void getL3GD20(){
     gyroX = L3GD20_read(L3GD20_X_H);
     gyrox = gyroX = (gyroX << 8) | L3GD20_read(L3GD20_X_L);
