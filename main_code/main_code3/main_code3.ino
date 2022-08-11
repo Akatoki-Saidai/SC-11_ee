@@ -1,50 +1,30 @@
 #include <SPI.h>
-#include <SD.h>
 #include <Wire.h>
 #include <DFRobot_QMC5883.h>
-//#include <SoftwareSerial.h>
-// #include <TinyGPS++.h>
 #include<MadgwickAHRS.h>
 Madgwick MadgwickFilter;
-
-// TinyGPSPlus gps;
-
-//SoftwareSerial GPS(9, 10);
 DFRobot_QMC5883 compass;
-
 const int BMP280_CS = 9;
 const int L3GD20_CS = 10;
 const int SD_CS = 4;
-
-File logd;
-
 int xpin = A2;
 int ypin = A1;
 int zpin = A0;
 int acX, acY, acZ;
 float mX, mY, mZ;
 float sumacc;
-
-//--------------------
-//アドレス指定
 #define CONFIG 0xF5
 #define CTRL_MEAS 0xF4
 #define CTRL_HUM 0xF2
-
-//気温補正データ
 uint16_t dig_T1;
 int16_t  dig_T2;
 int16_t  dig_T3;
-
-//湿度補正データ
 uint8_t  dig_H1;
 int16_t  dig_H2;
 uint8_t  dig_H3;
 int16_t  dig_H4;
 int16_t  dig_H5;
 int8_t   dig_H6;
-
-//気圧補正データ
 uint16_t dig_P1;
 int16_t  dig_P2;
 int16_t  dig_P3;
@@ -54,19 +34,14 @@ int16_t  dig_P6;
 int16_t  dig_P7;
 int16_t  dig_P8;
 int16_t  dig_P9;
-
 unsigned char dac[26];
 unsigned int i;
-
 int32_t t_fine;
-int32_t adc_P, adc_T, adc_H;
-
+int32_t adc_P, adc_T;
 int32_t  temp_cal;
-uint32_t humi_cal, pres_cal;
-float temp, humi, pres ,alt;
-float p0=1013.25;//海面気圧（hPa
-
-//--------------------
+uint32_t pres_cal;
+float temp, pres ,alt;
+float p0=1013.25;
 const byte L3GD20_WHOAMI = 0x0f;
 const byte L3GD20_CTRL1 = 0x20;
 const byte L3GD20_CTRL2 = 0x21;
@@ -79,34 +54,23 @@ const byte L3GD20_Y_L = 0x2A;
 const byte L3GD20_Y_H = 0x2B;
 const byte L3GD20_Z_L = 0x2C;
 const byte L3GD20_Z_H = 0x2D;
-
 const byte L3GD20_RW = 0x80;
 const byte L3GD20_MS = 0x40;
-
 short gyroX, gyroY, gyroZ;
 float gyrox, gyroy, gyroz;
-
 float magmagX, magmagY, magmagZ;
 float heading, headingDegrees;
-
 int phase = 1;
 int phase_state = 0;
-// double GPSLAT, GPSLNG;
-
 float boarderheight;
 long starttime;
-
 float roll, pitch, yaw;
-//--------------------
-
-
 void L3GD20_write(byte reg, byte val){
     digitalWrite(L3GD20_CS, LOW);
     SPI.transfer(reg);
     SPI.transfer(val);
     digitalWrite(L3GD20_CS, HIGH);
 }
-
 byte L3GD20_read(byte reg){
     byte ret = 0;
     digitalWrite(L3GD20_CS, LOW);
@@ -115,63 +79,38 @@ byte L3GD20_read(byte reg){
     digitalWrite(L3GD20_CS, HIGH);
     return ret;
 }
-
-
 void setup(){
-    // Serialデータはデバッグモードが解除されていれば自動的にTweLiteに送信されます．
     Serial.begin(115200);
-//    GPS.begin(9600);
     compass.begin();
-    
-    // ----------SPI制御の設定----------
-    //SPI初期化
     SPI.begin();
     SPI.setDataMode(SPI_MODE0);
     SPI.setBitOrder(MSBFIRST);
-
-    pinMode(BMP280_CS, OUTPUT); //BMP280
-    pinMode(L3GD20_CS, OUTPUT); //L3GD20
-    pinMode(SD_CS, OUTPUT); //SD card
-
+    pinMode(BMP280_CS, OUTPUT);
+    pinMode(L3GD20_CS, OUTPUT);
+    pinMode(SD_CS, OUTPUT);
     digitalWrite(BMP280_CS,HIGH);
     digitalWrite(L3GD20_CS,HIGH);
     digitalWrite(SD_CS,HIGH);
-
-    // ----------SDカード書き込みの初期化----------
-    SD.begin(SD_CS);
-    logd = SD.open("s.txt", FILE_WRITE);
-
-    // ----------BMP280の設定----------
-    //BME280動作設定
-    digitalWrite(BMP280_CS, LOW);//BMP280_CSピンの出力をLOW(0V)に設定
-    SPI.transfer(CONFIG & 0x7F);//動作設定
-    SPI.transfer(0x00);//「単発測定」、「フィルタなし」、「SPI 4線式」
-    digitalWrite(BMP280_CS, HIGH);//BMP280_CSピンの出力をHIGH(5V)に設定
-
-    //BME280測定条件設定
-    digitalWrite(BMP280_CS, LOW);//BMP280_CSピンの出力をLOW(0V)に設定
-    SPI.transfer(CTRL_MEAS & 0x7F);//測定条件設定
-    SPI.transfer(0x24);//「温度・気圧オーバーサンプリングx1」、「スリープモード」
-    digitalWrite(BMP280_CS, HIGH);//BMP280_CSピンの出力をHIGH(5V)に設定
-
-    //BME280温度測定条件設定
-    digitalWrite(BMP280_CS, LOW);//BMP280_CSピンの出力をLOW(0V)に設定
-    SPI.transfer(CTRL_HUM & 0x7F);//湿度測定条件設定
-    SPI.transfer(0x01);//「湿度オーバーサンプリングx1」
-    digitalWrite(BMP280_CS, HIGH);//BMP280_CSピンの出力をHIGH(5V)に設定
-
-    //BME280補正データ取得
-    digitalWrite(BMP280_CS, LOW);//BMP280_CSピンの出力をLOW(0V)に設定
-    SPI.transfer(0x88 | 0x80);//出力データバイトを「補正データ」のアドレスに指定、書き込みフラグを立てる
+    digitalWrite(BMP280_CS, LOW);
+    SPI.transfer(CONFIG & 0x7F);
+    SPI.transfer(0x00);
+    digitalWrite(BMP280_CS, HIGH);
+    digitalWrite(BMP280_CS, LOW);
+    SPI.transfer(CTRL_MEAS & 0x7F);
+    SPI.transfer(0x24);
+    digitalWrite(BMP280_CS, HIGH);
+    digitalWrite(BMP280_CS, LOW);
+    SPI.transfer(CTRL_HUM & 0x7F);
+    SPI.transfer(0x01);
+    digitalWrite(BMP280_CS, HIGH);
+    digitalWrite(BMP280_CS, LOW);
+    SPI.transfer(0x88 | 0x80);
     for (i=0; i<26; i++){
-        dac[i] = SPI.transfer(0x00);//dacにSPIデバイス「BME280」のデータ読み込み
-    }
-    digitalWrite(BMP280_CS, HIGH);//BMP280_CSピンの出力をHIGH(5V)に設定
-
+        dac[i] = SPI.transfer(0x00);}
+    digitalWrite(BMP280_CS, HIGH);
     dig_T1 = ((uint16_t)((dac[1] << 8) | dac[0]));
     dig_T2 = ((int16_t)((dac[3] << 8) | dac[2]));
     dig_T3 = ((int16_t)((dac[5] << 8) | dac[4]));
-
     dig_P1 = ((uint16_t)((dac[7] << 8) | dac[6]));
     dig_P2 = ((int16_t)((dac[9] << 8) | dac[8]));
     dig_P3 = ((int16_t)((dac[11] << 8) | dac[10]));
@@ -181,132 +120,59 @@ void setup(){
     dig_P7 = ((int16_t)((dac[19] << 8) | dac[18]));
     dig_P8 = ((int16_t)((dac[21] << 8) | dac[20]));
     dig_P9 = ((int16_t)((dac[23] << 8) | dac[22]));
-
     dig_H1 = ((uint8_t)(dac[25]));
-
-    digitalWrite(BMP280_CS, LOW);//BMP280_CSピンの出力をLOW(0V)に設定
-    SPI.transfer(0xE1 | 0x80);//出力データバイトを「補正データ」のアドレスに指定、書き込みフラグを立てる
+    digitalWrite(BMP280_CS, LOW);
+    SPI.transfer(0xE1 | 0x80);
     for (i=0; i<7; i++){
-        dac[i] = SPI.transfer(0x00);//dacにSPIデバイス「BM3280」のデータ読み込み
-    }
-    digitalWrite(BMP280_CS, HIGH);//BMP280_CSピンの出力をHIGH(5V)に設定
-
+        dac[i] = SPI.transfer(0x00);    
+    digitalWrite(BMP280_CS, HIGH);
     dig_H2 = ((int16_t)((dac[1] << 8) | dac[0]));
     dig_H3 = ((uint8_t)(dac[2]));
     dig_H4 = ((int16_t)((dac[3] << 4) + (dac[4] & 0x0F)));
     dig_H5 = ((int16_t)((dac[5] << 4) + ((dac[4] >> 4) & 0x0F)));
     dig_H6 = ((int8_t)dac[6]);
-    
-    delay(1000);//1000msec待機(1秒待機)
-
-    // ----------L3GD20の設定----------
+    delay(1000);}
     L3GD20_write(L3GD20_CTRL1, B00001111);
-
-    // ----------地磁気センサーの設定----------
     compass.setRange(QMC5883_RANGE_2GA);
     compass.setMeasurementMode(QMC5883_CONTINOUS); 
     compass.setDataRate(QMC5883_DATARATE_50HZ);
     compass.setSamples(QMC5883_SAMPLES_8);
-
-    //----------LEDの設定----------
     pinMode(7,OUTPUT);
     pinMode(8,OUTPUT);
     pinMode(A3,OUTPUT);
-  
     LEDsetting(8);
     delay(5000);
-
-    //
-    logd.print("SS,");
-    logd.print("millis");
-    logd.print(",");
-    logd.print("pres");
-    logd.print(",");
-    logd.print("temp");
-    logd.print(",");
-    logd.print("alt");
-    logd.print(",");
-    logd.print("gyrox");
-    logd.print(",");
-    logd.print("gyroy");
-    logd.print(",");
-    logd.print("gyroz");
-    logd.print(",");
-    logd.print("mX");
-    logd.print(",");
-    logd.print("mY");
-    logd.print(",");
-    logd.print("mZ");
-    logd.print(",");
-    logd.print("roll");
-    logd.print(",");
-    logd.print("pitch");
-    logd.print(",");
-    logd.print("yaw");
-    logd.print(",");
-    // logd.print(GPSLAT);
-    // logd.print(",");
-    // logd.print(GPSLNG);
-    // logd.print(",");
-    logd.println("headingDegrees");
-    logd.flush();
 }
 
 void loop(){
-
-    //センサーの値を取得する
     getDataBMP();
     getL3GD20();
     getAcc();
     getmagmag();
-
-    sumacc = sqrt(acX*acX + acY*acY + acZ*acZ);
-
-    // while (GPS.available() > 0) {
-    // char c = GPS.read();
-    // gps.encode(c);
-    // if (gps.location.isUpdated()) {
-    //   GPSLAT = gps.location.lat();
-    //   GPSLNG = gps.location.lng();
-    // }
-    // }
-    MadgwickFilter.update(gyrox,gyroy,gyroz,-mY,-mX,-mZ,-magmagX, - magmagY, magmagZ);
-
+    sumacc = sqrt(mX*mX + mY*mY + mZ*mZ) -1.0 ;
+    MadgwickFilter.updateIMU(gyrox,gyroy,gyroz,-mY,-mX,-mZ);
     roll = MadgwickFilter.getRollRadians();
     pitch = MadgwickFilter.getPitchRadians();
     yaw = MadgwickFilter.getYawRadians();
-
-    sensorwrite();
-
-    Serial.print(roll);
-    Serial.print("\t");
-    Serial.print(pitch);
-    Serial.print("\t");
-    Serial.println(yaw);
-
+//    Serial.print(gyrox);
+//    Serial.print("\t");
+//    Serial.print(gyroy);
+//    Serial.print("\t");
+    Serial.println(sumacc);
 switch(phase){
       case 1:{
         if(phase_state != 1){
-          //フェーズに入ったとき１回だけ実行したいプログラムを書く
-          Serial.println("Mode-N: Move completed"); //地上局へのデータ送信
+          Serial.println("Mode-N: Move completed");
           boarderheight = alt;
           starttime = millis();
-          //LogDataの保存
-          logd.print(millis());
-          logd.println("Mode-N: Move completed");    
-          logd.flush();
           phase_state = 1;
           LEDsetting(0);
           delay(1000);
           LEDsetting(1);
           }
         
-        if(((alt - boarderheight > 30) && (millis() - starttime > 30*1000) && (sumacc > 10)) || true){
-            Serial.println("Mode-N: Detected a fall"); //地上局へのデータ送信
-            //LogDataの保存
-            logd.print(millis());
-            logd.println("Mode-N: Detected a fall");    
-            logd.flush();
+        if(((alt - boarderheight > 30) && (millis() - starttime > 30*1000) && (sumacc > 2)) || true){
+            Serial.println("Mode-N: Detected a fall");
             phase = 2;
             LEDsetting(7);
           }
@@ -316,15 +182,9 @@ switch(phase){
 
         case 2:{
           if(phase_state != 2){
-            //フェーズに入ったとき１回だけ実行したいプログラムを書く
-            Serial.println("Mode-A: Moved completed"); //地上局へのデータ送信
-            logd.print(millis());
-            logd.println("Mode-A: Moved completed");    
-            logd.flush();
+            Serial.println("Mode-A: Moved completed");
             phase_state = 2;
             }
-          
-
           if (abs(sumacc) > 0.2){
             phase = 3;
           }
@@ -333,27 +193,14 @@ switch(phase){
 
         case 3:{
           if(phase_state != 2){
-            //降下フェーズに入ったとき１回だけ実行したいプログラムを書く
-            Serial.println("Mode-B: Moved completed"); //地上局へのデータ送信
-            logd.print(millis());
-            logd.println("Mode-B: Moved completed");
-            logd.flush();
+            Serial.println("Mode-B: Moved completed");
             phase_state = 2;
             }
-          
           break;
           }
-      
       }
 }
 
-
-
-
-
-//------------------------------------------------------------------------
-
-//温度補正 関数
 int32_t BME280_compensate_T_int32(int32_t adc_T){
     int32_t var1, var2, T;
   var1  = ((((adc_T>>3) - ((int32_t)dig_T1<<1))) * ((int32_t)dig_T2)) >> 11;
@@ -419,15 +266,12 @@ void getDataBMP(){
 
     adc_P = ((uint32_t)dac[0] << 12) | ((uint32_t)dac[1] << 4) | ((dac[2] >> 4) & 0x0F);
     adc_T = ((uint32_t)dac[3] << 12) | ((uint32_t)dac[4] << 4) | ((dac[5] >> 4) & 0x0F);
-    adc_H = ((uint32_t)dac[6] << 8) | ((uint32_t)dac[7]);
 
     pres_cal = BME280_compensate_P_int32(adc_P);//気圧データ補正計算
     temp_cal = BME280_compensate_T_int32(adc_T);//温度データ補正計算
-    humi_cal = bme280_compensate_H_int32(adc_H);//湿度データ補正計算
 
     pres = (float)pres_cal / 100.0;//気圧データを実際の値に計算
     temp = (float)temp_cal / 100.0;//温度データを実際の値に計算
-    humi = (float)humi_cal / 1024.0;//湿度データを実際の値に計算
     alt  = ((pow(p0/pres,1/5.257) - 1)*(temp + 273.15))/0.0065;
 }
 void getL3GD20(){
@@ -489,43 +333,6 @@ void getmagmag(){
 
   // Convert to degrees
   headingDegrees = heading * 180/M_PI; 
-}
-
-
-void sensorwrite(){
-  logd.print("SS,");
-  logd.print(millis());
-  logd.print(",");
-  logd.print(pres);
-  logd.print(",");
-  logd.print(temp);
-  logd.print(",");
-  logd.print(alt);
-  logd.print(",");
-  logd.print(gyrox);
-  logd.print(",");
-  logd.print(gyroy);
-  logd.print(",");
-  logd.print(gyroz);
-  logd.print(",");
-  logd.print(mX);
-  logd.print(",");
-  logd.print(mY);
-  logd.print(",");
-  logd.print(mZ);
-  logd.print(",");
-  logd.print(roll);
-  logd.print(",");
-  logd.print(pitch);
-  logd.print(",");
-  logd.print(yaw);
-  logd.print(",");
-  // logd.print(GPSLAT);
-  // logd.print(",");
-  // logd.print(GPSLNG);
-  // logd.print(",");
-  logd.println(headingDegrees);
-  logd.flush();
 }
 
 void LEDsetting(int num){
@@ -593,4 +400,8 @@ void LEDsetting(int num){
     break;
   }
 }
+}
+
+void motor(int right, int left){
+    
 }
