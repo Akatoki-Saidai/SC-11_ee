@@ -2,22 +2,28 @@
 #include <SD.h>
 #include <Wire.h>
 #include <DFRobot_QMC5883.h>
+#include <SoftwareSerial.h>
+#include <TinyGPS++.h>
+#include<MadgwickAHRS.h>
+Madgwick MadgwickFilter;
 
+TinyGPSPlus gps;
+
+SoftwareSerial GPS(9, 10);
 DFRobot_QMC5883 compass;
 
 const int BMP280_CS = 9;
 const int L3GD20_CS = 10;
 const int SD_CS = 4;
 
-File LogFile;
-File SensorData;
+File logd;
 
 int xpin = A2;
 int ypin = A1;
 int zpin = A0;
 int acX, acY, acZ;
-double mX, mY, mZ;
-
+float mX, mY, mZ;
+float sumacc;
 
 //--------------------
 //アドレス指定
@@ -81,9 +87,14 @@ short gyroX, gyroY, gyroZ;
 float gyrox, gyroy, gyroz;
 
 float magmagX, magmagY, magmagZ;
-
 float heading, headingDegrees;
 
+int phase = 1;
+int phase_state = 0;
+double GPSLAT, GPSLNG;
+
+float boarderheight;
+long starttime;
 //--------------------
 
 
@@ -106,7 +117,8 @@ byte L3GD20_read(byte reg){
 
 void setup(){
     // Serialデータはデバッグモードが解除されていれば自動的にTweLiteに送信されます．
-    Serial.begin(115200); 
+    Serial.begin(115200);
+    GPS.begin(9600);
     compass.begin();
     
     // ----------SPI制御の設定----------
@@ -119,14 +131,13 @@ void setup(){
     pinMode(L3GD20_CS, OUTPUT); //L3GD20
     pinMode(SD_CS, OUTPUT); //SD card
 
-    digitalWrite(9,HIGH);
-    digitalWrite(10,HIGH);
-    digitalWrite(4,HIGH);
+    digitalWrite(BMP280_CS,HIGH);
+    digitalWrite(L3GD20_CS,HIGH);
+    digitalWrite(SD_CS,HIGH);
 
     // ----------SDカード書き込みの初期化----------
     SD.begin(SD_CS);
-//    LogFile = SD.open("./logdata.txt", FILE_WRITE);
-    SensorData = SD.open("s.txt", FILE_WRITE);
+    logd = SD.open("s.txt", FILE_WRITE);
 
     // ----------BMP280の設定----------
     //BME280動作設定
@@ -194,37 +205,78 @@ void setup(){
     compass.setMeasurementMode(QMC5883_CONTINOUS); 
     compass.setDataRate(QMC5883_DATARATE_50HZ);
     compass.setSamples(QMC5883_SAMPLES_8);
+
+    //----------LEDの設定----------
+    pinMode(7,OUTPUT);
+    pinMode(8,OUTPUT);
+    pinMode(A3,OUTPUT);
+  
 }
 
 void loop(){
+
+    //センサーの値を取得する
     getDataBMP();
     getL3GD20();
     getAcc();
     getmagmag();
 
-    Serial.println("BMP");
-    Serial.print(pres);
-    Serial.print("\t");
-    Serial.print(temp);
-    Serial.print("\t");
-    Serial.println(alt);
-    Serial.println("gyro");
-    Serial.print(gyrox);
-    Serial.print("\t");
-    Serial.print(gyroy);
-    Serial.print("\t");
-    Serial.println(gyroz);
-    Serial.println("acc");
-    Serial.print(mX);
-    Serial.print("\t");
-    Serial.print(mY);
-    Serial.print("\t");
-    Serial.println(mZ);
-    Serial.println("compass");
-    Serial.println(headingDegrees);
-    
-    Serial.println();
-    delay(1000);
+    while (GPS.available() > 0) {
+    char c = GPS.read();
+    gps.encode(c);
+    if (gps.location.isUpdated()) {
+      GPSLAT = gps.location.lat();
+      GPSLNG = gps.location.lng();
+    }
+    }
+
+    sensorwrite();
+
+
+swicth(phase){
+      case 1:{
+        if(phase_state != 1){
+          //降下フェーズに入ったとき１回だけ実行したいプログラムを書く
+          Serial.println("Mode-N: Move completed"); //地上局へのデータ送信
+          boarderheight = alt;
+          starttime = millis()
+          //LogDataの保存
+          logd.print(millis());
+          logd.println("Mode-N: Move completed");    
+          logd.flush();
+          phase_state = 1;
+
+
+          }
+        
+        if((alt - boarderheight > 30) && (millis() - starttime > 30*1000) && (sumacc > 10)){
+            Serial.println("Mode-N: Detected a fall"); //地上局へのデータ送信
+            //LogDataの保存
+            logd.print(millis());
+            logd.println("Mode-N: Detected a fall");    
+            logd.flush();
+            phase = 2;
+          }
+
+          break;
+        }
+
+        case 2:{
+          if(phase_state != 2){
+            //降下フェーズに入ったとき１回だけ実行したいプログラムを書く
+            Serial.println("Mode-A: Stabilize the posture"); //地上局へのデータ送信
+            logd.print(millis());
+            logd.println("Mode-A: Stabilize the posture");    
+            logd.flush();
+            phase_state = 2;
+            }
+          
+
+
+          }
+      
+      
+      }
 }
 
 
@@ -304,7 +356,7 @@ void getDataBMP(){
     pres = (float)pres_cal / 100.0;//気圧データを実際の値に計算
     temp = (float)temp_cal / 100.0;//温度データを実際の値に計算
     humi = (float)humi_cal / 1024.0;//湿度データを実際の値に計算
-    alt  = ((pow(p0/pres,-5.257)-1)*(temp + 273.15))/0.0065;
+    alt  = ((pow(p0/pres,1/5.257) - 1)*(temp + 273.15))/0.0065;
 }
 
 void getL3GD20(){
@@ -334,7 +386,7 @@ void getAcc(){
   //誤差補正
   mX = (mX+0.92)/(-0.42);
   mY = (mY+0.93)/(-0.41);
-  mZ = (mZ+0.94)/(-0.42);
+  mZ = -(mZ+0.94)/(-0.42);
 }
 
 void getmagmag(){
@@ -345,25 +397,69 @@ void getmagmag(){
   
   Vector norm = compass.readNormalize();
   
-  heading = atan2(norm.YAxis, norm.XAxis);
+  heading = atan2(magmagY, magmagX);
 
   // Set declination angle on your location and fix heading
   // You can find your declination on: http://magnetic-declination.com/
   // (+) Positive or (-) for negative
   // For Bytom / Poland declination angle is 4'26E (positive)
   // Formula: (deg + (min / 60.0)) / (180 / M_PI);
-  float declinationAngle = -(9.0 + (2.0 / 60.0)) / (180 / PI);
+  float declinationAngle = -(9.0 + (2.0 / 60.0)) / (180 / M_PI);
   heading += declinationAngle;
 
   // Correct for heading < 0deg and heading > 360deg
   if (heading < 0){
-    heading += 2 * PI;
+    heading += 2 * M_PI;
   }
 
-  if (heading > 2 * PI){
-    heading -= 2 * PI;
+  if (heading > 2 * M_PI){
+    heading -= 2 * M_PI;
   }
 
   // Convert to degrees
   headingDegrees = heading * 180/M_PI; 
+}
+
+
+void sensorwrite(){
+  logd.print("SS,");
+  logd.print(millis());
+  logd.print(",")
+  logd.print(pres);
+  logd.print(",");
+  logd.print(temp);
+  logd.print(",");
+  logd.print(alt);
+  logd.print(",");
+  logd.print(gyrox);
+  logd.print(",");
+  logd.print(gyroy);
+  logd.print(",");
+  logd.print(gyroz);
+  logd.print(",");
+  logd.print(mX);
+  logd.print(",");
+  logd.print(mY);
+  logd.print(",");
+  logd.print(mZ);
+  logd.print(",");
+  logd.print(GPSLAT);
+  logd.print(",");
+  logd.print(GPSLOG);
+  logd.print(",")
+  logd.println(headingDegrees);
+  logd.flush();
+}
+
+void LEDsetting(int num){
+  switch (num){
+  case 0:{
+    digitalWrite(7,);
+    digitalWrite(7,);
+    digitalWrite(7,);
+  }
+  
+  default:
+    break;
+  }
 }
