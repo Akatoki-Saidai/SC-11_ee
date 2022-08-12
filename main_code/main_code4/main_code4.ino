@@ -185,7 +185,7 @@ void loop(){
     Serial.println(gyroz);
 //    Serial.print("\t");
 //    Serial.println(sumacc);
-//    motor(1100,1000);
+      motor(1300,1300);
     
 switch(phase){
       case 1:{
@@ -435,7 +435,7 @@ void LEDsetting(int num){
 }
 }
 
-void motor(int left, int right){
+void motor(int right, int left){
   escR.writeMicroseconds(right);
   escL.writeMicroseconds(left);
 }
