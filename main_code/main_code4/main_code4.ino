@@ -70,7 +70,7 @@ short gyroX, gyroY, gyroZ;
 float gyrox, gyroy, gyroz;
 float magmagX, magmagY, magmagZ;
 float heading, headingDegrees;
-int phase = 3;
+int phase = 1;
 int phase_state = 0;
 float boarderheight;
 long starttime;
