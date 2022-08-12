@@ -1,3 +1,4 @@
+
 #include <SPI.h>
 #include <Wire.h>
 #include <DFRobot_QMC5883.h>
@@ -70,7 +71,7 @@ short gyroX, gyroY, gyroZ;
 float gyrox, gyroy, gyroz;
 float magmagX, magmagY, magmagZ;
 float heading, headingDegrees;
-int phase = 3;
+int phase = 4;
 int phase_state = 0;
 float boarderheight;
 long starttime;
@@ -92,7 +93,7 @@ byte L3GD20_read(byte reg){
 }
 void setup(){
     Serial.begin(115200);
-    compass.begin();
+    if(!compass.begin()){};
     SPI.begin();
     SPI.setDataMode(SPI_MODE0);
     SPI.setBitOrder(MSBFIRST);
@@ -176,16 +177,15 @@ void loop(){
     getDataBMP();
     getL3GD20();
     getAcc();
-    getmagmag();
+    headingDegrees = getmagmag();
     sumacc = sqrt(mX*mX + mY*mY + mZ*mZ) -1.0 ;
 //    MadgwickFilter.updateIMU(gyrox,gyroy,gyroz,-mY,-mX,-mZ);
 //    roll = MadgwickFilter.getRollRadians();
 //    pitch = MadgwickFilter.getPitchRadians();
 //    yaw = MadgwickFilter.getYawRadians();
-    Serial.println(gyroz);
+    Serial.println(headingDegrees);
 //    Serial.print("\t");
 //    Serial.println(sumacc);
-      motor(1300,1300);
     
 switch(phase){
       case 1:{
@@ -228,9 +228,26 @@ switch(phase){
             motor(0,zaxis_control(gyroz));
            }else if(gyroz<-90){
             motor(zaxis_control(gyroz),0);
-           }
+           }else{
+            motor(1300,1300);
+            }
           break;
           }
+        case 4:{
+          if(phase_state != 4){
+            Serial.println("Mode-B: Moved completed");
+            phase_state = 4;
+            }
+          //GPS使えない場合,当日ゴール方向の地磁気のx,y値を読み取る
+          //右のモータ出力上げる
+            if(headingDegrees>20 && headingDegrees<90){
+              motor(1300,0);
+              //左のモーターの出力を上げる
+            }else if(headingDegrees>270 && headingDegrees<345){
+              motor(0,1300);
+            }
+            break;
+        }
       }
 }
 
@@ -337,15 +354,11 @@ void getAcc(){
   mZ = -(mZ+0.94)/(-0.42);
 }
 
-void getmagmag(){
-  Vector mag = compass.readRaw();
-  magmagX = mag.XAxis-1000;
-  magmagY = mag.YAxis-1000;
-  magmagZ = mag.ZAxis-1000;
-  
+float getmagmag(){
   Vector norm = compass.readNormalize();
-  
-  heading = atan2(magmagY, magmagX);
+
+  // Calculate heading
+  float heading = atan2(norm.YAxis, norm.XAxis);
 
   // Set declination angle on your location and fix heading
   // You can find your declination on: http://magnetic-declination.com/
@@ -357,15 +370,16 @@ void getmagmag(){
 
   // Correct for heading < 0deg and heading > 360deg
   if (heading < 0){
-    heading += 2 * M_PI;
+    heading += 2 * PI;
   }
 
-  if (heading > 2 * M_PI){
-    heading -= 2 * M_PI;
+  if (heading > 2 * PI){
+    heading -= 2 * PI;
   }
 
   // Convert to degrees
-  headingDegrees = heading * 180/M_PI; 
+  float headingDegrees = heading * 180/M_PI;
+  return headingDegrees; 
 }
 
 void LEDsetting(int num){
