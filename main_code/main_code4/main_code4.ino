@@ -1,7 +1,6 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <DFRobot_QMC5883.h>
-#include<MadgwickAHRS.h>
 #include <Servo.h>
 
 #define MAX_SIGNAL 2000  //PWM信号における最大のパルス幅[マイクロ秒]
@@ -12,7 +11,6 @@
 Servo escR;
 Servo escL;
 
-Madgwick MadgwickFilter;
 DFRobot_QMC5883 compass;
 const int BMP280_CS = 9;
 const int L3GD20_CS = 10;
@@ -194,7 +192,7 @@ void loop(){
     getAcc();
     getmagmag();
     sumacc = sqrt(mX*mX + mY*mY + mZ*mZ) -0.9 ;
-    Serial.println(alt);
+    Serial.print(alt);
     Serial.print("\t");
     Serial.println(sumacc);
     
