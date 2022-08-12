@@ -70,7 +70,7 @@ short gyroX, gyroY, gyroZ;
 float gyrox, gyroy, gyroz;
 float magmagX, magmagY, magmagZ;
 float heading, headingDegrees;
-int phase = 4;
+int phase = 3;
 int phase_state = 0;
 float boarderheight;
 long starttime;
@@ -233,9 +233,7 @@ switch(phase){
             motor(0,zaxis_control(gyroz));
            }else if(gyroz<-90){
             motor(zaxis_control(gyroz),0);
-           }else{
-            motor(1300,1300);
-            }         
+           }        
           if (gyroz<=90 && gyroz>=-90){
             phase = 4;
           }
@@ -247,13 +245,14 @@ switch(phase){
             Serial.println("Mode-B: Moved completed");
             phase_state = 4;
             }
+            motor(1300,1300);
           //GPS使えない場合,当日ゴール方向の地磁気のx,y値を読み取る
           //右のモータ出力上げる
             if(headingDegrees>20 && headingDegrees<90){
-              motor(1300,0);
+              motor(1300,1100);
               //左のモーターの出力を上げる
             }else if(headingDegrees>270 && headingDegrees<345){
-              motor(0,1300);
+              motor(1100,1300);
             }
             if(gyroz>90 && gyroz<-90){
               phase = 3;
