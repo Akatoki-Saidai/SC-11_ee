@@ -1,4 +1,3 @@
-
 #include <SPI.h>
 #include <Wire.h>
 #include <DFRobot_QMC5883.h>
@@ -236,7 +235,11 @@ switch(phase){
             motor(zaxis_control(gyroz),0);
            }else{
             motor(1300,1300);
-            }
+            }         
+          if (gyroz<=90 && gyroz>=-90){
+            phase = 4;
+          }
+            
           break;
           }
         case 4:{
@@ -251,6 +254,9 @@ switch(phase){
               //左のモーターの出力を上げる
             }else if(headingDegrees>270 && headingDegrees<345){
               motor(0,1300);
+            }
+            if(gyroz>90 && gyroz<-90){
+              phase = 3;
             }
             break;
         }
