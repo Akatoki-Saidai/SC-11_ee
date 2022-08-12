@@ -165,7 +165,7 @@ void setup(){
     pinMode(7,OUTPUT);
     pinMode(8,OUTPUT);
     pinMode(A3,OUTPUT);
-    LEDsetting(8);
+    LEDsetting(7);
     Serial.println("Writing maximum output.");
     escR.writeMicroseconds(MAX_SIGNAL);
     escL.writeMicroseconds(MAX_SIGNAL);
@@ -180,7 +180,10 @@ void setup(){
       motor(i,i);
       delay(10);
      }
+    pinMode(6,OUTPUT);
+    digitalWrite(6,LOW);
     LEDsetting(1);
+    
 }
 
 void loop(){
@@ -189,9 +192,9 @@ void loop(){
     getAcc();
     getmagmag();
     sumacc = sqrt(mX*mX + mY*mY + mZ*mZ) -1.0 ;
-    Serial.println(headingDegrees);
-//    Serial.print("\t");
-//    Serial.println(sumacc);
+    Serial.println(alt);
+    Serial.print("\t");
+    Serial.println(sumacc);
     
 switch(phase){
       case 1:{
@@ -205,10 +208,13 @@ switch(phase){
           LEDsetting(2);
           }
         
-        if(((alt - boarderheight > 30) && (millis() - starttime > 30*1000) && (sumacc > 2)) || true){
+        if(((alt - boarderheight > 30) && (millis() - starttime > 30*1000) && (sumacc > 2)) || false){
             Serial.println("Mode-N: Detected a fall");
             phase = 2;
             LEDsetting(3);
+            digitalWrite(6,HIGH);
+            delay(6*1000);
+            digitalWrite(6,LOW);
           }
 
           break;
@@ -218,7 +224,7 @@ switch(phase){
           if(phase_state != 2){
             Serial.println("Mode-A: Moved completed");
             phase_state = 2;
-            LEDsetting(4)
+            LEDsetting(4);
             }
           if(gyroz > 90){
             motor(0,zaxis_control(gyroz));
@@ -413,35 +419,29 @@ void LEDsetting(int num){
     break;
   }
   
-  case 4:{
-    digitalWrite(8,LOW);
-    digitalWrite(7,LOW);
-    digitalWrite(A3,HIGH);
-    break;
-  }
 
-  case 5:{
+  case 4:{
     digitalWrite(8,HIGH);
     digitalWrite(7,HIGH);
     digitalWrite(A3,LOW);
     break;
   }
 
-  case 6:{
+  case 5:{
     digitalWrite(8,HIGH);
     digitalWrite(7,LOW);
     digitalWrite(A3,HIGH);
     break;
   }
 
-  case 7:{
+  case 6:{
     digitalWrite(8,LOW);
     digitalWrite(7,HIGH);
     digitalWrite(A3,HIGH);
     break;
   }
 
-  case 8:{
+  case 7:{
     digitalWrite(8,HIGH);
     digitalWrite(7,HIGH);
     digitalWrite(A3,HIGH);
