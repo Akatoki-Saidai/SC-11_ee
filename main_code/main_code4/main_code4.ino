@@ -165,6 +165,7 @@ void setup(){
     pinMode(7,OUTPUT);
     pinMode(8,OUTPUT);
     pinMode(A3,OUTPUT);
+    
     LEDsetting(7);
     Serial.println("Writing maximum output.");
     escR.writeMicroseconds(MAX_SIGNAL);
@@ -179,6 +180,7 @@ void setup(){
     for(int i=900; i <1400; i+=10){
       motor(i,i);
      }
+     motor(0,0);
     pinMode(6,OUTPUT);
     digitalWrite(6,LOW);
     LEDsetting(1);
@@ -190,7 +192,7 @@ void loop(){
     getL3GD20();
     getAcc();
     getmagmag();
-    sumacc = sqrt(mX*mX + mY*mY + mZ*mZ) -1.0 ;
+    sumacc = sqrt(mX*mX + mY*mY + mZ*mZ) -0.9 ;
     Serial.println(alt);
     Serial.print("\t");
     Serial.println(sumacc);
