@@ -184,7 +184,7 @@ void setup(){
     pinMode(6,OUTPUT);
     digitalWrite(6,LOW);
     LEDsetting(1);
-    
+    delay(1000);
 }
 
 void loop(){
