@@ -209,7 +209,7 @@ switch(phase){
           LEDsetting(2);
           }
         
-        if(((alt - boarderheight > 30) && (millis() - starttime > 30*1000) && (sumacc > 2)) || false){
+        if(((alt - boarderheight > 30) && (millis() - starttime > 180*1000) && (sumacc > 1.3)) || false){
             Serial.println("Mode-N: Detected a fall");
             phase = 2;
             LEDsetting(3);
