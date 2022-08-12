@@ -180,6 +180,7 @@ void setup(){
       motor(i,i);
       delay(10);
      }
+    LEDsetting(1);
 }
 
 void loop(){
@@ -201,13 +202,13 @@ switch(phase){
           phase_state = 1;
           LEDsetting(0);
           delay(1000);
-          LEDsetting(1);
+          LEDsetting(2);
           }
         
         if(((alt - boarderheight > 30) && (millis() - starttime > 30*1000) && (sumacc > 2)) || true){
             Serial.println("Mode-N: Detected a fall");
             phase = 2;
-            LEDsetting(7);
+            LEDsetting(3);
           }
 
           break;
@@ -217,33 +218,24 @@ switch(phase){
           if(phase_state != 2){
             Serial.println("Mode-A: Moved completed");
             phase_state = 2;
-            }
-          if (abs(sumacc) > 0.2){
-            phase = 3;
-          }
-          break;
-          }
-
-        case 3:{
-          if(phase_state != 2){
-            Serial.println("Mode-B: Moved completed");
-            phase_state = 2;
+            LEDsetting(4)
             }
           if(gyroz > 90){
             motor(0,zaxis_control(gyroz));
            }else if(gyroz<-90){
             motor(zaxis_control(gyroz),0);
            }        
-          if (gyroz<=90 && gyroz>=-90){
-            phase = 4;
+          if (abs(gyroz) < 90){
+            phase = 3;
           }
             
           break;
           }
-        case 4:{
-          if(phase_state != 4){
+        case 3:{
+          if(phase_state != 3){
             Serial.println("Mode-B: Moved completed");
-            phase_state = 4;
+            phase_state = 3;
+            LEDsetting(5);
             }
             motor(1300,1300);
           //GPS使えない場合,当日ゴール方向の地磁気のx,y値を読み取る
@@ -254,8 +246,8 @@ switch(phase){
             }else if(headingDegrees>270 && headingDegrees<345){
               motor(1100,1300);
             }
-            if(gyroz>90 && gyroz<-90){
-              phase = 3;
+            if(abs(gyroz)>90){
+              phase = 2;
             }
             break;
         }
