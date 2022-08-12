@@ -177,8 +177,9 @@ void setup(){
     escL.writeMicroseconds(MIN_SIGNAL);
     Serial.println("Wait 2 seconds. Then motor starts");
     delay(2000);
-    for(int i=900; i <1400; i+=10){
+    for(int i=900; i <1400; i+=100){
       motor(i,i);
+      delay(100);
      }
      motor(0,0);
     pinMode(6,OUTPUT);
@@ -209,7 +210,7 @@ switch(phase){
           LEDsetting(2);
           }
         
-        if(((alt - boarderheight > 30) && (millis() - starttime > 180*1000) && (sumacc > 1.3)) || false){
+        if((alt - boarderheight > 30) && (millis() - starttime > 180*1000) && (sumacc > 1.0)){
             Serial.println("Mode-N: Detected a fall");
             phase = 2;
             LEDsetting(3);
@@ -314,7 +315,7 @@ void getDataBMP(){
     SPI.transfer(CTRL_MEAS & 0x7F);//測定条件設定
     SPI.transfer(0x25);//「温度・気圧オーバーサンプリングx1」、「1回測定後、スリープモード」
     digitalWrite(BMP280_CS, HIGH);//BMP280_CSピンの出力をHIGH(5V)に設定
-    delay(10);//10msec待機
+//    delay(10);//10msec待機
 
     //測定データ取得
     digitalWrite(BMP280_CS, LOW);//BMP280_CSピンの出力をLOW(0V)に設定
@@ -347,7 +348,7 @@ void getL3GD20(){
     //x *= 0.07;  // +-2000dps
     gyroy *= 0.00875; // +-250dps
     gyroz *= 0.00875; // +-250dps
-    delay(10);
+//    delay(10);
 }
 
 void getAcc(){
