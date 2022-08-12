@@ -178,7 +178,6 @@ void setup(){
     delay(2000);
     for(int i=900; i <1400; i+=10){
       motor(i,i);
-      delay(10);
      }
     pinMode(6,OUTPUT);
     digitalWrite(6,LOW);
