@@ -16,12 +16,7 @@
 
 DFRobot_QMC5883 compass;
 
-int minX = 0;
-int maxX = 0;
-int minY = 0;
-int maxY = 0;
-int offX = 0;
-int offY = 0;
+int magmagX,magmagY,magmagZ;
 
 void setup()
 {
@@ -49,61 +44,43 @@ void setup()
   }
 void loop()
 {
+  getmagmag();
+
+}
+
+
+void getmagmag(){
   Vector mag = compass.readRaw();
+  magmagX = mag.XAxis-1000;
+  magmagY = mag.YAxis-1000;
+  magmagZ = mag.ZAxis-1000;
 
-  if(mag.XAxis>maxX){
-    maxX=mag.XAxis;
-  }
-  if(mag.YAxis>maxY){
-    maxY=mag.YAxis;
-  }
-
-  if(mag.XAxis<minX){
-    minX=mag.XAxis;
-  }
-  if(mag.YAxis<minY){
-    minY=mag.YAxis;
-  }
-  
-  
-
+float getmagmag(){
   Vector norm = compass.readNormalize();
-  
+
+  heading = atan2(magmagY, magmagX);
+
   // Calculate heading
   float heading = atan2(norm.YAxis, norm.XAxis);
 
-  // Set declination angle on your location and fix heading
-  // You can find your declination on: http://magnetic-declination.com/
-  // (+) Positive or (-) for negative
-  // For Bytom / Poland declination angle is 4'26E (positive)
-  // Formula: (deg + (min / 60.0)) / (180 / M_PI);
-  float declinationAngle = (4.0 + (26.0 / 60.0)) / (180 / PI);
+  
+  float declinationAngle = -(9.0 + (2.0 / 60.0)) / (180 / M_PI);
   heading += declinationAngle;
 
-  // Correct for heading < 0deg and heading > 360deg
+  
   if (heading < 0){
+    
     heading += 2 * PI;
   }
-
+ 
   if (heading > 2 * PI){
     heading -= 2 * PI;
   }
 
+}
   // Convert to degrees
-  float headingDegrees = heading * 180/M_PI; 
+  headingDegrees = heading * 180/M_PI; 
+  float headingDegrees = heading * 180/M_PI;
+  return headingDegrees; 
 
-  // Output
-  Serial.print(mag.XAxis+650);
-  Serial.print(":");
-  Serial.print(mag.YAxis-1250);
-  Serial.print(":");
-  Serial.print(mag.ZAxis);
-  Serial.print(":");
-  Serial.print(" Heading = ");
-  Serial.print(heading);
-  Serial.print(" Degress = ");
-  Serial.print(headingDegrees);
-  Serial.println();
-
-  delay(100);
 }
