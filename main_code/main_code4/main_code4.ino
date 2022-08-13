@@ -1,7 +1,6 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <DFRobot_QMC5883.h>
-#include<MadgwickAHRS.h>
 #include <Servo.h>
 
 #define MAX_SIGNAL 2000  //PWM信号における最大のパルス幅[マイクロ秒]
@@ -12,7 +11,6 @@
 Servo escR;
 Servo escL;
 
-Madgwick MadgwickFilter;
 DFRobot_QMC5883 compass;
 const int BMP280_CS = 9;
 const int L3GD20_CS = 10;
@@ -70,10 +68,10 @@ short gyroX, gyroY, gyroZ;
 float gyrox, gyroy, gyroz;
 float magmagX, magmagY, magmagZ;
 float heading, headingDegrees;
-int phase = 3;
+int phase = 1;
 int phase_state = 0;
 float boarderheight;
-long starttime;
+unsigned long starttime;
 float roll, pitch, yaw;
 
 void L3GD20_write(byte reg, byte val){
@@ -92,7 +90,7 @@ byte L3GD20_read(byte reg){
 }
 void setup(){
     Serial.begin(115200);
-    compass.begin();
+    if(!compass.begin()){};
     SPI.begin();
     SPI.setDataMode(SPI_MODE0);
     SPI.setBitOrder(MSBFIRST);
@@ -144,10 +142,20 @@ void setup(){
     dig_H6 = ((int8_t)dac[6]);
     delay(1000);}
     L3GD20_write(L3GD20_CTRL1, B00001111);
-    compass.setRange(QMC5883_RANGE_2GA);
-    compass.setMeasurementMode(QMC5883_CONTINOUS); 
-    compass.setDataRate(QMC5883_DATARATE_50HZ);
-    compass.setSamples(QMC5883_SAMPLES_8);
+    if(compass.isHMC()){
+        Serial.println("Initialize HMC5883");
+        compass.setRange(HMC5883L_RANGE_1_3GA);
+        compass.setMeasurementMode(HMC5883L_CONTINOUS);
+        compass.setDataRate(HMC5883L_DATARATE_15HZ);
+        compass.setSamples(HMC5883L_SAMPLES_8);
+    }
+   else if(compass.isQMC()){
+        Serial.println("Initialize QMC5883");
+        compass.setRange(QMC5883_RANGE_2GA);
+        compass.setMeasurementMode(QMC5883_CONTINOUS); 
+        compass.setDataRate(QMC5883_DATARATE_50HZ);
+        compass.setSamples(QMC5883_SAMPLES_8);
+   }
 
     escR.attach(ESC_PIN_R);
     escL.attach(ESC_PIN_L);
@@ -155,7 +163,8 @@ void setup(){
     pinMode(7,OUTPUT);
     pinMode(8,OUTPUT);
     pinMode(A3,OUTPUT);
-    LEDsetting(8);
+    
+    LEDsetting(7);
     Serial.println("Writing maximum output.");
     escR.writeMicroseconds(MAX_SIGNAL);
     escL.writeMicroseconds(MAX_SIGNAL);
@@ -166,10 +175,15 @@ void setup(){
     escL.writeMicroseconds(MIN_SIGNAL);
     Serial.println("Wait 2 seconds. Then motor starts");
     delay(2000);
-    for(int i=900; i <1400; i+=10){
+    for(int i=900; i <1400; i+=100){
       motor(i,i);
-      delay(10);
+      delay(100);
      }
+     motor(0,0);
+    pinMode(6,OUTPUT);
+    digitalWrite(6,LOW);
+    LEDsetting(1);
+    delay(1000);
 }
 
 void loop(){
@@ -177,15 +191,10 @@ void loop(){
     getL3GD20();
     getAcc();
     getmagmag();
-    sumacc = sqrt(mX*mX + mY*mY + mZ*mZ) -1.0 ;
-//    MadgwickFilter.updateIMU(gyrox,gyroy,gyroz,-mY,-mX,-mZ);
-//    roll = MadgwickFilter.getRollRadians();
-//    pitch = MadgwickFilter.getPitchRadians();
-//    yaw = MadgwickFilter.getYawRadians();
-    Serial.println(gyroz);
-//    Serial.print("\t");
-//    Serial.println(sumacc);
-      motor(1300,1300);
+    sumacc = sqrt(mX*mX + mY*mY + mZ*mZ) -0.9 ;
+    Serial.print(alt);
+    Serial.print("\t");
+    Serial.println(sumacc);
     
 switch(phase){
       case 1:{
@@ -196,13 +205,16 @@ switch(phase){
           phase_state = 1;
           LEDsetting(0);
           delay(1000);
-          LEDsetting(1);
+          LEDsetting(2);
           }
         
-        if(((alt - boarderheight > 30) && (millis() - starttime > 30*1000) && (sumacc > 2)) || true){
+        if((alt - boarderheight > 30) && (millis() - starttime > 180000) && (sumacc > 1.0)){
             Serial.println("Mode-N: Detected a fall");
             phase = 2;
-            LEDsetting(7);
+            LEDsetting(3);
+            digitalWrite(6,HIGH);
+            delay(6*1000);
+            digitalWrite(6,LOW);
           }
 
           break;
@@ -212,25 +224,39 @@ switch(phase){
           if(phase_state != 2){
             Serial.println("Mode-A: Moved completed");
             phase_state = 2;
-            }
-          if (abs(sumacc) > 0.2){
-            phase = 3;
-          }
-          break;
-          }
-
-        case 3:{
-          if(phase_state != 2){
-            Serial.println("Mode-B: Moved completed");
-            phase_state = 2;
+            LEDsetting(4);
             }
           if(gyroz > 90){
             motor(0,zaxis_control(gyroz));
            }else if(gyroz<-90){
             motor(zaxis_control(gyroz),0);
-           }
+           }        
+          if (abs(gyroz) < 90){
+            phase = 3;
+          }
+            
           break;
           }
+        case 3:{
+          if(phase_state != 3){
+            Serial.println("Mode-B: Moved completed");
+            phase_state = 3;
+            LEDsetting(5);
+            }
+            motor(1300,1300);
+          //GPS使えない場合,当日ゴール方向の地磁気のx,y値を読み取る
+          //右のモータ出力上げる
+            if(headingDegrees>20 && headingDegrees<90){
+              motor(1300,1100);
+              //左のモーターの出力を上げる
+            }else if(headingDegrees>270 && headingDegrees<345){
+              motor(1100,1300);
+            }
+            if(abs(gyroz)>90){
+              phase = 2;
+            }
+            break;
+        }
       }
 }
 
@@ -287,7 +313,7 @@ void getDataBMP(){
     SPI.transfer(CTRL_MEAS & 0x7F);//測定条件設定
     SPI.transfer(0x25);//「温度・気圧オーバーサンプリングx1」、「1回測定後、スリープモード」
     digitalWrite(BMP280_CS, HIGH);//BMP280_CSピンの出力をHIGH(5V)に設定
-    delay(10);//10msec待機
+//    delay(10);//10msec待機
 
     //測定データ取得
     digitalWrite(BMP280_CS, LOW);//BMP280_CSピンの出力をLOW(0V)に設定
@@ -320,7 +346,7 @@ void getL3GD20(){
     //x *= 0.07;  // +-2000dps
     gyroy *= 0.00875; // +-250dps
     gyroz *= 0.00875; // +-250dps
-    delay(10);
+//    delay(10);
 }
 
 void getAcc(){
@@ -337,35 +363,30 @@ void getAcc(){
   mZ = -(mZ+0.94)/(-0.42);
 }
 
-void getmagmag(){
-  Vector mag = compass.readRaw();
-  magmagX = mag.XAxis-1000;
-  magmagY = mag.YAxis-1000;
-  magmagZ = mag.ZAxis-1000;
-  
+float getmagmag(){
   Vector norm = compass.readNormalize();
-  
-  heading = atan2(magmagY, magmagX);
 
+  // Calculate heading
+  heading = atan2(norm.YAxis, norm.XAxis);
   // Set declination angle on your location and fix heading
   // You can find your declination on: http://magnetic-declination.com/
   // (+) Positive or (-) for negative
   // For Bytom / Poland declination angle is 4'26E (positive)
   // Formula: (deg + (min / 60.0)) / (180 / M_PI);
-  float declinationAngle = -(9.0 + (2.0 / 60.0)) / (180 / M_PI);
+  float declinationAngle = -(9.0 + (2.0 / 60.0)) / (180 / PI);
   heading += declinationAngle;
 
   // Correct for heading < 0deg and heading > 360deg
   if (heading < 0){
-    heading += 2 * M_PI;
+    heading += 2 * PI;
   }
 
-  if (heading > 2 * M_PI){
-    heading -= 2 * M_PI;
+  if (heading > 2 * PI){
+    heading -= 2 * PI;
   }
 
   // Convert to degrees
-  headingDegrees = heading * 180/M_PI; 
+  headingDegrees = heading * 180/M_PI;
 }
 
 void LEDsetting(int num){
@@ -398,35 +419,29 @@ void LEDsetting(int num){
     break;
   }
   
-  case 4:{
-    digitalWrite(8,LOW);
-    digitalWrite(7,LOW);
-    digitalWrite(A3,HIGH);
-    break;
-  }
 
-  case 5:{
+  case 4:{
     digitalWrite(8,HIGH);
     digitalWrite(7,HIGH);
     digitalWrite(A3,LOW);
     break;
   }
 
-  case 6:{
+  case 5:{
     digitalWrite(8,HIGH);
     digitalWrite(7,LOW);
     digitalWrite(A3,HIGH);
     break;
   }
 
-  case 7:{
+  case 6:{
     digitalWrite(8,LOW);
     digitalWrite(7,HIGH);
     digitalWrite(A3,HIGH);
     break;
   }
 
-  case 8:{
+  case 7:{
     digitalWrite(8,HIGH);
     digitalWrite(7,HIGH);
     digitalWrite(A3,HIGH);
