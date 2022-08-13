@@ -3,12 +3,12 @@
 #include <DFRobot_QMC5883.h>
 #include <Servo.h>
 #include <TinyGPS++.h>
-#include <SoftwareSerial.h>
-SoftwareSerial gps_serial(2, 3);
+#include <NeoSWSerial.h>
+NeoSWSerial gps_serial(2, 3);
 TinyGPSPlus gps;
 double GOAL_lng =140.043357;
 double GOAL_lat=40.169709;
-int phase = 1;
+int phase = 2;
 
 #define MAX_SIGNAL 2000  //PWM信号における最大のパルス幅[マイクロ秒]
 #define MIN_SIGNAL 1000  //PWM信号における最小のパルス幅[マイクロ秒]
@@ -16,6 +16,7 @@ int phase = 1;
 #define ESC_PIN_L 5
 #define rad2deg(a) ((a) / M_PI * 180.0) /* rad を deg に換算するマクロ関数 */
 #define deg2rad(a) ((a) / 180.0 * M_PI) /* deg を rad に換算するマクロ関数 */
+
 Servo escR;
 Servo escL;
 
@@ -200,15 +201,16 @@ void setup(){
       motor(i,i);
       delay(100);
      }
-     motor(0,0);
+    LEDsetting(1);
+    motor(0,0);
     pinMode(6,OUTPUT);
     digitalWrite(6,LOW);
-    LEDsetting(1);
     
-    delay(1000);
+    
+    delay(2000);
 }
 void loop(){
-  datanum += 1;
+    datanum += 1;
     getDataBMP();
     getL3GD20();
     getAcc();
@@ -226,7 +228,7 @@ void loop(){
     
     sumacc = sqrt(mX*mX + mY*mY + mZ*mZ) -0.9 ;
 
-    if(datanum%100==0){
+    if(datanum%200==0){
       sensorsend();
     }
 
@@ -244,7 +246,7 @@ switch(phase){
           LEDsetting(2);
           }
         
-        if((alt - boarderheight > 20) && (millis() - starttime > 180000) && (sumacc > 1.0)){
+        if( (alt - boarderheight > 20.0) && (millis() - starttime > 180000) && (sumacc > 1.0)){
             Serial.println("Mode-N: Detected a fall");
             sensorsend();
             startdistance = CalculateDis(GOAL_lng,GOAL_lat,gps_longitude,gps_latitude);
@@ -271,7 +273,9 @@ switch(phase){
           if (abs(gyroz) < 90){
             phase = 3;
           }
-            
+          if (alt - boarderheight < 5.0){
+            phase = 4;
+          }
           break;
           }
         case 3:{
@@ -279,23 +283,20 @@ switch(phase){
             Serial.println("Mode-B: Moved completed");
             sensorsend();
             phase_state = 3;
-            if(gpsChecker){
-            LEDsetting(5);
-            }else{
-            LEDsetting(0);
-            }
+              motor(1300,1300);
             }
             motor(1300,1300);
 
             if(gpsChecker){
+              LEDsetting(5);
               Angle_Goal = CalculateAngle(GOAL_lng,GOAL_lat,gps_longitude,gps_latitude);
               //GPSが使える場合
               //右のモータの出力を上げる
               if(Angle_Goal-headingDegrees>20 && Angle_Goal-headingDegrees<90){
-                motor(1300,1100);
+                motor(1350,1050);
                 //左のモーターの出力を上げる
               }else if(Angle_Goal-headingDegrees>270 && Angle_Goal-headingDegrees<345){
-                motor(1100,1300);
+                motor(1050,1350);
               }
               if(abs(gyroz)>90){
                 phase = 2;
@@ -303,13 +304,19 @@ switch(phase){
             }else{
             //GPS使えない場合,当日ゴール方向の地磁気のx,y値を読み取る
             //右のモータ出力上げる
+              LEDsetting(0);
               if(headingDegrees>20 && headingDegrees<90){
-                motor(1300,1100);
+                motor(1350,1050);
                 //左のモーターの出力を上げる
               }else if(headingDegrees>270 && headingDegrees<345){
-                motor(1100,1300);
+                motor(1050,1350);
               }
             }
+
+            if (alt - boarderheight < 5.0){
+            phase = 4;
+            }
+            
             break;
         }
       case 4:{
@@ -561,7 +568,7 @@ int zaxis_control(float x){
 void sensorsend(){
   Serial.print("dn=");
   Serial.println(datanum);
-  Serial.print("millis=");
+  Serial.print("mi=");
   Serial.println(millis());
   Serial.print("pres=");
   Serial.println(pres);
