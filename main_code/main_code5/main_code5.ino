@@ -6,8 +6,9 @@
 #include <NeoSWSerial.h>
 NeoSWSerial gps_serial(2, 3);
 TinyGPSPlus gps;
-double GOAL_lng =140.043357;
-double GOAL_lat=40.169709;
+double GOAL_lng =139.987335205;
+double GOAL_lat=40.142295837;
+
 int phase = 1;
 
 #define MAX_SIGNAL 2000  //PWM信号における最大のパルス幅[マイクロ秒]
