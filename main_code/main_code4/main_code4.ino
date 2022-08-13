@@ -71,7 +71,7 @@ float heading, headingDegrees;
 int phase = 1;
 int phase_state = 0;
 float boarderheight;
-long starttime;
+unsigned long starttime;
 float roll, pitch, yaw;
 
 void L3GD20_write(byte reg, byte val){
@@ -208,7 +208,7 @@ switch(phase){
           LEDsetting(2);
           }
         
-        if((alt - boarderheight > 30) && (millis() - starttime > 180*1000) && (sumacc > 1.0)){
+        if((alt - boarderheight > 30) && (millis() - starttime > 180000) && (sumacc > 1.0)){
             Serial.println("Mode-N: Detected a fall");
             phase = 2;
             LEDsetting(3);
