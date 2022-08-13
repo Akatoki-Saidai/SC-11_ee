@@ -253,7 +253,7 @@ switch(phase){
             phase = 2;
             LEDsetting(3);
             digitalWrite(6,HIGH);
-            delay(6000);
+            delay(4000);
             digitalWrite(6,LOW);
           }
           break;
