@@ -8,7 +8,7 @@ NeoSWSerial gps_serial(2, 3);
 TinyGPSPlus gps;
 double GOAL_lng =140.043357;
 double GOAL_lat=40.169709;
-int phase = 2;
+int phase = 1;
 
 #define MAX_SIGNAL 2000  //PWM信号における最大のパルス幅[マイクロ秒]
 #define MIN_SIGNAL 1000  //PWM信号における最小のパルス幅[マイクロ秒]
@@ -253,7 +253,7 @@ switch(phase){
             phase = 2;
             LEDsetting(3);
             digitalWrite(6,HIGH);
-            delay(8000);
+            delay(6000);
             digitalWrite(6,LOW);
           }
           break;
@@ -590,6 +590,8 @@ void sensorsend(){
   Serial.println(mZ);
   Serial.print("HD=");
   Serial.println(headingDegrees);
+  Serial.print("sac=");
+  Serial.println(sumacc);
   Serial.print("lat=");
   Serial.println(gps_latitude,9);
   Serial.print("lon=");
