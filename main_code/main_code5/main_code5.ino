@@ -6,8 +6,8 @@
 #include <NeoSWSerial.h>
 NeoSWSerial gps_serial(2, 3);
 TinyGPSPlus gps;
-double GOAL_lng =139.987335205;
-double GOAL_lat=40.142295837;
+double GOAL_lng =139.988265991;
+double GOAL_lat=40.142120361;
 
 int phase = 1;
 
