@@ -247,7 +247,7 @@ switch(phase){
           LEDsetting(2);
           }
         
-        if( (alt - boarderheight > 20.0) && (millis() - starttime > 180000) && (sumacc > 1.0)){
+        if( (alt - boarderheight > 20.0) && (millis() - starttime > 300000) && (sumacc > 1.0)){
             Serial.println("Mode-N: Detected a fall");
             sensorsend();
             startdistance = CalculateDis(GOAL_lng,GOAL_lat,gps_longitude,gps_latitude);
